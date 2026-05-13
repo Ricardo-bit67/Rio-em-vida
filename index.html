@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Salve o Rio</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game">
+
+    <!-- TELA INICIAL -->
+    <div id="screen-start" class="screen active">
+      <div class="background-gif"></div>
+      
+      <h1>SALVE<br>O RIO</h1>
+      <p class="subtitle">PEQUENAS AÇÕES, GRANDES MUDANÇAS!</p>
+      
+      <div class="character">
+        <img id="leo-start" src="assets/Guardiao.png" alt="Guardião">
+      </div>
+
+      <button id="btn-play">▶ JOGAR</button>
+      <button id="btn-howto">COMO JOGAR</button>
+    </div>
+
+    <!-- TELA COMO JOGAR -->
+    <div id="screen-howto" class="screen">
+      <h2>Como Jogar</h2>
+      <p>Escolha ações para melhorar a qualidade do rio.<br>
+         Algumas ações demoram mais dias para fazer efeito.</p>
+      <button id="btn-back">Voltar</button>
+    </div>
+
+    <!-- TELA DO JOGO -->
+    <div id="screen-game" class="screen">
+      <header>
+        <div class="status">
+          <div class="quality">
+            <span>QUALIDADE DO RIO</span>
+            <div class="bar-container">
+              <div id="quality-bar" class="bar"></div>
+            </div>
+            <span id="quality-text">65%</span>
+          </div>
+          <div class="points">
+            <span id="points">230</span> ⭐
+          </div>
+        </div>
+        <div class="day">Dia <span id="day">1</span></div>
+      </header>
+
+      <!-- Cena do Rio -->
+      <div class="river-scene">
+        <img id="river-bg" src="assets/Salve o rio (1).gif" alt="Rio">
+        <div class="leo-container">
+          <img id="leo-game" src="assets/Guardiao.png" alt="Guardião">
+          <div id="speech-bubble" class="speech-bubble"></div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="action-btn" data-points="12" data-type="tree">
+          🌳 Plantar Árvores<br><small>+12 (3 dias)</small>
+        </button>
+        <button class="action-btn" data-points="18" data-type="clean">
+          🗑️ Limpar o Rio<br><small>+18 (1 dia)</small>
+        </button>
+        <button class="action-btn" data-points="25" data-type="factory">
+          🏭 Fiscalizar Fábrica<br><small>+25 (2 dias)</small>
+        </button>
+      </div>
+
+      <div class="game-buttons">
+        <button id="btn-end-turn" class="end-turn">Finalizar Dia</button>
+        <button id="btn-back-menu" class="back-menu">← Voltar ao Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
