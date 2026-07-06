@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Salve o Rio</title>
+  <title>Rio em Vida</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,7 +15,7 @@
       
       <button id="btn-settings-start" class="settings-btn">⚙️</button>
 
-      <h1>SALVE<br>O RIO</h1>
+      <h1>RIO<br>EM VIDA</h1>
       <p class="subtitle">PEQUENAS AÇÕES, GRANDES MUDANÇAS!</p>
       
       <div class="character">
@@ -56,39 +56,40 @@
             <div class="bar-container">
               <div id="quality-bar" class="bar"></div>
             </div>
-            <span id="quality-text">65%</span>
+            <span id="quality-text">12%</span>
           </div>
           <div class="points">
-            <span id="points">230</span> ⭐
+            <span id="points">0</span> ⭐
           </div>
         </div>
         <div class="day">Dia <span id="day">1</span></div>
       </header>
 
       <div class="river-scene">
-        <img id="river-bg" src="assets/P1.png" alt="Rio">
-        <div class="leo-container">
-          <img id="leo-game" src="assets/Guardiao.png" alt="Guardião">
-          <div id="speech-bubble" class="speech-bubble"></div>
-        </div>
+        <canvas id="river-canvas" width="720" height="260"></canvas>
+      </div>
+
+      <div class="leo-container">
+        <img id="leo-game" src="assets/Guardiao.png" alt="Guardião">
+        <div id="speech-bubble" class="speech-bubble"></div>
       </div>
 
       <div class="actions">
-        <button class="action-btn" data-points="12" data-type="tree">
+        <button class="action-btn" data-points="3" data-type="tree">
           <img src="Sprites/UI_Flat_BarFill01f.png" alt="" class="btn-sprite">
-          <div class="btn-text">🌳 Plantar Árvores<br><small>+12 (3 dias)</small></div>
+          <div class="btn-text">🌳 Plantar Árvores<br><small>+3 (3 dias)</small></div>
         </button>
-        <button class="action-btn" data-points="18" data-type="clean">
+        <button class="action-btn" data-type="clean" data-points="25">
+  🗑️ Limpar Rio<br>
+  <small>+25 (1 dia)</small>
+</button>
+        <button class="action-btn" data-points="4" data-type="recycle">
           <img src="Sprites/UI_Flat_BarFill01f.png" alt="" class="btn-sprite">
-          <div class="btn-text">🗑️ Limpar o Rio<br><small>+18 (1 dia)</small></div>
+          <div class="btn-text">♻️ Campanha de Reciclagem<br><small>+4 (2 dias)</small></div>
         </button>
-        <button class="action-btn" data-points="15" data-type="recycle">
+        <button class="action-btn" data-points="6" data-type="factory">
           <img src="Sprites/UI_Flat_BarFill01f.png" alt="" class="btn-sprite">
-          <div class="btn-text">♻️ Campanha de Reciclagem<br><small>+15 (2 dias)</small></div>
-        </button>
-        <button class="action-btn" data-points="25" data-type="factory">
-          <img src="Sprites/UI_Flat_BarFill01f.png" alt="" class="btn-sprite">
-          <div class="btn-text">🏭 Fiscalizar Fábrica<br><small>+25 (2 dias)</small></div>
+          <div class="btn-text">🏭 Fiscalizar Fábrica<br><small>+6 (2 dias)</small></div>
         </button>
       </div>
 
