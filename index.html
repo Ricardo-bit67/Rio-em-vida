@@ -12,12 +12,12 @@
     <!-- TELA INICIAL -->
     <div id="screen-start" class="screen active">
       <div class="background-gif"></div>
-      
+
       <button id="btn-settings-start" class="settings-btn">⚙️</button>
 
       <h1>RIO<br>EM VIDA</h1>
       <p class="subtitle">PEQUENAS AÇÕES, GRANDES MUDANÇAS!</p>
-      
+
       <div class="character">
         <img id="leo-start" src="assets/Guardiao.png" alt="Guardião">
       </div>
@@ -37,17 +37,85 @@
       </div>
     </div>
 
-    <!-- TELA COMO JOGAR -->
+    <!-- TELA COMO JOGAR (TUTORIAL COMPLETO) -->
     <div id="screen-howto" class="screen">
-      <h2>Como Jogar</h2>
-      <p>Escolha ações para melhorar a qualidade do rio.<br>
-         Algumas ações demoram mais dias para fazer efeito.</p>
+      <h2>📖 Como Jogar</h2>
+
+      <div class="howto-content">
+
+        <section class="howto-section">
+          <h3>🎯 Seu objetivo</h3>
+          <p>Você é o <strong>Guardião do Rio</strong>. O rio da sua cidade está poluído e precisa da
+          sua ajuda. A cada dia, escolha ações para melhorar a <strong>qualidade do rio</strong> até
+          chegar a <strong>100%</strong>. Mas cuidado: o tempo passa e, se você não agir, a poluição
+          volta a crescer sozinha — e se a qualidade chegar a <strong>0%</strong>, o rio morre.</p>
+        </section>
+
+        <section class="howto-section">
+          <h3>🔁 Como funciona um dia</h3>
+          <ol class="howto-steps">
+            <li>Escolha uma ou mais ações disponíveis no painel.</li>
+            <li>Cada ação tem um <strong>efeito</strong> (quanto melhora o rio) e um <strong>prazo</strong>
+              (quantos dias leva pra fazer efeito de verdade).</li>
+            <li>Clique em <strong>FINALIZAR DIA</strong> para avançar o tempo.</li>
+            <li>No fim do dia, eventos aleatórios podem acontecer — bons ou ruins.</li>
+            <li>Novas ações são desbloqueadas conforme os dias passam.</li>
+          </ol>
+        </section>
+
+        <section class="howto-section">
+          <h3>🛠️ As ações</h3>
+          <div class="howto-actions-grid">
+            <div class="howto-action-card action-clean">
+              <span class="howto-icon">🗑️</span>
+              <strong>Limpar Rio</strong>
+              <small>Disponível desde o Dia 1 · efeito em 1 dia</small>
+              <p>Remove o lixo visível da água. É rápida e sempre disponível — sua base de ação diária.</p>
+            </div>
+            <div class="howto-action-card action-tree">
+              <span class="howto-icon">🌳</span>
+              <strong>Plantar Árvores</strong>
+              <small>Desbloqueia no Dia 3 · efeito em 3 dias</small>
+              <p>Árvores nas margens seguram o solo e protegem o rio da erosão. Leva mais tempo, mas o efeito é duradouro.</p>
+            </div>
+            <div class="howto-action-card action-recycle">
+              <span class="howto-icon">♻️</span>
+              <strong>Campanha de Reciclagem</strong>
+              <small>Desbloqueia no Dia 5 · efeito em 2 dias</small>
+              <p>Educa e engaja a comunidade a gerar menos lixo. O efeito cresce quando a população participa.</p>
+            </div>
+            <div class="howto-action-card action-factory">
+              <span class="howto-icon">🏭</span>
+              <strong>Fiscalizar Fábrica</strong>
+              <small>Desbloqueia no Dia 7 · efeito em 2 dias</small>
+              <p>Fiscaliza a indústria local, reduzindo o dano de vazamentos químicos que possam acontecer.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="howto-section">
+          <h3>🎲 Eventos aleatórios</h3>
+          <p>Ao fim de cada dia, existe uma chance de algo acontecer — chuvas, retorno de peixes,
+          crescimento natural, mas também vazamentos e contaminações. Ter uma <strong>Fábrica fiscalizada</strong>
+          reduz o estrago de eventos industriais, e ações como <strong>Árvores</strong> e <strong>Reciclagem</strong>
+          ganham bônus quando combinadas com certos eventos positivos.</p>
+        </section>
+
+        <section class="howto-section">
+          <h3>🏆 Vitória e derrota</h3>
+          <p><strong>Vitória:</strong> a qualidade do rio chega a 100%.<br>
+          <strong>Derrota:</strong> a qualidade do rio cai a 0%.</p>
+        </section>
+
+      </div>
+
       <button id="btn-back" class="pixel-btn">VOLTAR</button>
     </div>
 
     <!-- TELA DO JOGO -->
     <div id="screen-game" class="screen">
       <button id="btn-settings-game" class="settings-btn">⚙️</button>
+      <div id="day-night-badge" class="day-night-badge">☀️</div>
 
       <header>
         <div class="status">
@@ -55,6 +123,7 @@
             <span>QUALIDADE DO RIO</span>
             <div class="bar-container">
               <div id="quality-bar" class="bar"></div>
+              <div class="bar-segments"></div>
             </div>
             <span id="quality-text">12%</span>
           </div>
@@ -69,27 +138,37 @@
         <canvas id="river-canvas" width="720" height="260"></canvas>
       </div>
 
-      <div class="leo-container">
-        <img id="leo-game" src="assets/Guardiao.png" alt="Guardião">
-        <div id="speech-bubble" class="speech-bubble"></div>
+      <!-- CAIXA DE DIÁLOGO DO GUARDIÃO (fixa, não sobrepõe mais o canvas) -->
+      <div class="guardian-dialogue" id="guardian-dialogue">
+        <div class="guardian-portrait-frame">
+          <img id="leo-game" src="assets/Guardiao.png" alt="Guardião">
+        </div>
+        <div class="dialogue-box" id="dialogue-box">
+          <span class="dialogue-name">Guardião do Rio</span>
+          <p id="speech-bubble" class="dialogue-text">Escolha uma ação para começar a cuidar do rio...</p>
+        </div>
       </div>
 
       <div class="actions">
-        <button class="action-btn" data-points="3" data-type="tree">
-          <img src="Sprites/UI_Flat_BarFill01f.png" alt="" class="btn-sprite">
-          <div class="btn-text">🌳 Plantar Árvores<br><small>+3 (3 dias)</small></div>
+        <button class="action-btn action-tree" data-points="3" data-type="tree">
+          <span class="btn-icon">🌳</span>
+          <span class="btn-text">Plantar Árvores</span>
+          <small>+3 (3 dias)</small>
         </button>
-        <button class="action-btn" data-type="clean" data-points="25">
-  🗑️ Limpar Rio<br>
-  <small>+25 (1 dia)</small>
-</button>
-        <button class="action-btn" data-points="4" data-type="recycle">
-          <img src="Sprites/UI_Flat_BarFill01f.png" alt="" class="btn-sprite">
-          <div class="btn-text">♻️ Campanha de Reciclagem<br><small>+4 (2 dias)</small></div>
+        <button class="action-btn action-clean" data-type="clean" data-points="25">
+          <span class="btn-icon">🗑️</span>
+          <span class="btn-text">Limpar Rio</span>
+          <small>+25 (1 dia)</small>
         </button>
-        <button class="action-btn" data-points="6" data-type="factory">
-          <img src="Sprites/UI_Flat_BarFill01f.png" alt="" class="btn-sprite">
-          <div class="btn-text">🏭 Fiscalizar Fábrica<br><small>+6 (2 dias)</small></div>
+        <button class="action-btn action-recycle" data-points="4" data-type="recycle">
+          <span class="btn-icon">♻️</span>
+          <span class="btn-text">Campanha de Reciclagem</span>
+          <small>+4 (2 dias)</small>
+        </button>
+        <button class="action-btn action-factory" data-points="6" data-type="factory">
+          <span class="btn-icon">🏭</span>
+          <span class="btn-text">Fiscalizar Fábrica</span>
+          <small>+6 (2 dias)</small>
         </button>
       </div>
 
@@ -103,7 +182,7 @@
     <div id="screen-victory" class="screen">
       <h1 class="victory-title">🎉 RIO SALVO! 🎉</h1>
       <p class="victory-subtitle">Parabéns, Guardião do Rio!</p>
-      
+
       <div class="victory-stats">
         <p>Qualidade Final: <strong id="final-quality">100%</strong></p>
         <p>Pontuação Final: <strong id="final-points">890</strong> ⭐</p>
@@ -115,29 +194,56 @@
       </div>
 
       <button id="btn-restart" class="pixel-btn">JOGAR NOVAMENTE</button>
-      
+
       <div class="credits">Desenvolvido por:<br>
         Ricardo Oliveira Nascimento<br>
         Fábio Leite
       </div>
     </div>
 
+    <!-- TELA DE GAME OVER -->
+    <div id="screen-gameover" class="screen">
+      <h1 class="gameover-title">💀 O RIO MORREU 💀</h1>
+      <p class="gameover-subtitle">A poluição venceu dessa vez...</p>
+
+      <div class="victory-stats gameover-stats">
+        <p>Sobreviveu até o dia: <strong id="go-final-days">0</strong></p>
+        <p>Pontuação Final: <strong id="go-final-points">0</strong> ⭐</p>
+      </div>
+
+      <div class="character gameover-leo">
+        <img src="assets/Guardiao.png" alt="Guardião abatido">
+      </div>
+
+      <button id="btn-retry" class="pixel-btn danger-btn">TENTAR NOVAMENTE</button>
+    </div>
+
     <!-- MODAL CONFIGURAÇÕES -->
     <div id="settings-modal" class="modal">
       <div class="modal-content">
         <h2>⚙️ Configurações</h2>
-        
+
         <div class="setting-item">
           <label>Som / Música</label>
           <button id="btn-sound" class="toggle-btn">🔊 Ligado</button>
         </div>
-        
+
         <div class="setting-item">
           <label>Libras (Língua Brasileira de Sinais)</label>
           <button id="btn-libras" class="toggle-btn">✅ Ativado</button>
         </div>
 
         <button id="btn-close-settings" class="pixel-btn">FECHAR</button>
+      </div>
+    </div>
+
+    <!-- MODAL DE AÇÃO DESBLOQUEADA -->
+    <div id="action-unlock-modal" class="modal">
+      <div class="modal-content unlock-modal-content">
+        <span class="unlock-icon" id="unlock-icon">🌳</span>
+        <h2 id="unlock-title">Nova ação desbloqueada!</h2>
+        <p id="unlock-description" class="unlock-description"></p>
+        <button id="btn-unlock-ok" class="pixel-btn" disabled>Aguarde... (5)</button>
       </div>
     </div>
   </div>
