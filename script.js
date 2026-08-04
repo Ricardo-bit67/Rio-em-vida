@@ -1,23 +1,109 @@
-let quality = 25; // Começar mais baixo
+let quality = 24; // 24/200 = 12% exato
 let points = 0;
 let day = 1;
-const QUALITY_TARGET = 200; // Aumentado para tornar o jogo mais longo
+const QUALITY_TARGET = 200;
 let pendingActions = [];
+let appliedActions = new Set(); // ações cujo efeito já foi aplicado (proteção/bônus permanentes)
 let soundEnabled = true;
 let librasEnabled = true;
 let activeEvents = [];
-let eventSequence = [];
-let dayStreak = 0;
+let audioCtx = null;
+let psaActive = false; // Proteção de Nascentes ativa (reduz degradação diária)
+let currentAct = 1;
+let shownMilestones = new Set();
+let dayTransitionInProgress = false;
 
 // ==================== CANVAS RENDERING ====================
 let canvasStartTime = Date.now();
-const CYCLE_DURATION = 180000; // 3 minutos = 180 segundos
+const CYCLE_DURATION = 180000;
 
 let plantedTrees = [];
 let visualEffects = [];
 let screenFlash = null;
 
-// Mensagens contextualizadas por ação
+// ==================== SPRITES REAIS DO RIO (lixo / peixes / plantas / efeitos) ====================
+// Extraídos da folha de referência do rio e recortados em sprite sheets com fundo transparente.
+// Cada sheet vem acompanhado de um array de "frames" (retângulos reais de cada ícone dentro da
+// imagem), então o desenho usa drawImage com coordenadas de origem (sx, sy, sw, sh).
+const riverSprites = {};
+function loadRiverSheet(name, src) {
+  const img = new Image();
+  riverSprites[name] = { img, loaded: false };
+  img.onload = () => { riverSprites[name].loaded = true; };
+  img.src = src;
+}
+loadRiverSheet('trash', 'assets/river/trash_sheet.png');
+loadRiverSheet('fish', 'assets/river/fish_sheet.png');
+loadRiverSheet('plants', 'assets/river/plants_sheet.png');
+loadRiverSheet('effects', 'assets/river/effects_sheet.png');
+// Árvores reais (usadas tanto no fundo quanto nas árvores plantadas pelo jogador) — recortadas
+// em ícones individuais de assets/river/bg_trees_sparse.png (ver FRAMES_TREES mais abaixo).
+loadRiverSheet('bgTreesIcons', 'assets/river/bg_trees_sparse.png');
+// Camadas de fundo reais (fornecidas pelo usuário), tileadas horizontalmente com paralaxe:
+loadRiverSheet('bgClouds', 'assets/river/clouds_sheet.png');
+loadRiverSheet('bgForest', 'assets/river/bg_forest_silhouette.png');
+loadRiverSheet('bgTreesDense', 'assets/river/bg_trees_dense.png');
+loadRiverSheet('bgTreesMedium', 'assets/river/bg_trees_medium.png');
+loadRiverSheet('bgTreesSparse', 'assets/river/bg_trees_sparse.png');
+loadRiverSheet('bgGround', 'assets/river/bg_ground.png');
+loadRiverSheet('bgRocks', 'assets/river/bg_rocks_bushes.png');
+loadRiverSheet('bgWater', 'assets/river/bg_water.png');
+loadRiverSheet('bgWateranimation', 'assets/river/water_anim_sheet.png');
+// Fábrica real — anexada na margem direita do rio.
+loadRiverSheet('bgFactory', 'assets/river/bg_factory.png');
+
+const FRAMES_TRASH = [{"x": 0, "y": 15, "w": 83, "h": 21}, {"x": 106, "y": 7, "w": 36, "h": 29}, {"x": 188, "y": 5, "w": 38, "h": 31}, {"x": 280, "y": 2, "w": 21, "h": 34}, {"x": 353, "y": 5, "w": 40, "h": 31}, {"x": 30, "y": 42, "w": 22, "h": 30}, {"x": 105, "y": 41, "w": 38, "h": 31}, {"x": 194, "y": 39, "w": 27, "h": 33}, {"x": 276, "y": 44, "w": 28, "h": 28}, {"x": 353, "y": 49, "w": 41, "h": 23}, {"x": 21, "y": 87, "w": 40, "h": 21}, {"x": 110, "y": 77, "w": 28, "h": 31}, {"x": 189, "y": 74, "w": 36, "h": 34}, {"x": 270, "y": 72, "w": 40, "h": 36}, {"x": 354, "y": 79, "w": 39, "h": 29}, {"x": 25, "y": 114, "w": 32, "h": 30}, {"x": 104, "y": 117, "w": 41, "h": 27}, {"x": 187, "y": 115, "w": 40, "h": 29}, {"x": 271, "y": 116, "w": 39, "h": 28}, {"x": 352, "y": 115, "w": 43, "h": 29}];
+const FRAMES_FISH = [{"x": 6, "y": 4, "w": 48, "h": 27}, {"x": 64, "y": 3, "w": 52, "h": 28}, {"x": 124, "y": 2, "w": 51, "h": 29}, {"x": 183, "y": 2, "w": 53, "h": 29}, {"x": 240, "y": 1, "w": 60, "h": 30}, {"x": 7, "y": 36, "w": 45, "h": 26}, {"x": 62, "y": 33, "w": 55, "h": 29}, {"x": 124, "y": 33, "w": 52, "h": 29}, {"x": 185, "y": 32, "w": 49, "h": 30}, {"x": 247, "y": 31, "w": 46, "h": 31}, {"x": 8, "y": 65, "w": 44, "h": 28}, {"x": 69, "y": 66, "w": 41, "h": 27}, {"x": 127, "y": 66, "w": 45, "h": 27}];
+const FRAMES_PLANTS = [{"x": 9, "y": 0, "w": 36, "h": 54}, {"x": 62, "y": 2, "w": 41, "h": 52}, {"x": 115, "y": 4, "w": 45, "h": 50}, {"x": 170, "y": 0, "w": 44, "h": 54}, {"x": 0, "y": 61, "w": 55, "h": 47}, {"x": 58, "y": 62, "w": 49, "h": 46}, {"x": 122, "y": 60, "w": 30, "h": 48}];
+const FRAMES_EFFECTS = [{"x": 19, "y": 31, "w": 16, "h": 18}, {"x": 76, "y": 34, "w": 10, "h": 15}, {"x": 128, "y": 34, "w": 14, "h": 15}, {"x": 183, "y": 34, "w": 12, "h": 15}, {"x": 227, "y": 0, "w": 31, "h": 49}, {"x": 20, "y": 86, "w": 13, "h": 12}, {"x": 75, "y": 84, "w": 12, "h": 14}, {"x": 126, "y": 81, "w": 17, "h": 17}, {"x": 181, "y": 81, "w": 16, "h": 17}, {"x": 216, "y": 69, "w": 54, "h": 29}, {"x": 3, "y": 114, "w": 48, "h": 33}, {"x": 73, "y": 131, "w": 16, "h": 16}, {"x": 127, "y": 127, "w": 16, "h": 20}, {"x": 177, "y": 122, "w": 23, "h": 25}, {"x": 233, "y": 128, "w": 19, "h": 19}, {"x": 20, "y": 183, "w": 13, "h": 13}, {"x": 75, "y": 184, "w": 12, "h": 12}, {"x": 128, "y": 183, "w": 13, "h": 13}, {"x": 182, "y": 184, "w": 13, "h": 12}];
+// Os 4 primeiros índices de FRAMES_EFFECTS são bolhas pequenas (ideais pra efeito ambiente contínuo)
+const BUBBLE_FRAME_INDICES = [0, 1, 2, 3, 5, 6, 15, 16, 17, 18];
+// Árvores individuais reais, recortadas de assets/river/bg_trees_sparse.png (retângulos reais de
+// cada pé/grupo de árvore na imagem) — usadas tanto no fundo quanto nas árvores plantadas pelo jogador.
+const FRAMES_TREES = [{"x": 1, "y": 0, "w": 43, "h": 47}, {"x": 46, "y": 0, "w": 43, "h": 47}, {"x": 87, "y": 0, "w": 210, "h": 47}, {"x": 301, "y": 0, "w": 43, "h": 47}, {"x": 346, "y": 0, "w": 38, "h": 47}];
+
+// Índice 2 é um grupo largo de várias árvores juntas — bom pro fundo, largo demais pra uma
+// única "árvore plantada" pelo jogador, então essa fica de fora do sorteio de variante única.
+const SINGLE_TREE_INDICES = [0, 1, 3, 4];
+function randomTreeVariant() {
+  return SINGLE_TREE_INDICES[Math.floor(Math.random() * SINGLE_TREE_INDICES.length)];
+}
+
+// Desenha um ícone real (lixo/peixe/planta/bolha) a partir de uma sheet, ancorado pelo centro-base (x,y)
+function drawRiverSprite(ctx, sheetName, frames, index, x, y, targetH, opacity, flip, rotationDeg) {
+  const sheet = riverSprites[sheetName];
+  if (!sheet || !sheet.loaded || !frames.length) return;
+  const f = frames[((index % frames.length) + frames.length) % frames.length];
+  const scale = targetH / f.h;
+  const w = f.w * scale, h = f.h * scale;
+  ctx.save();
+  ctx.globalAlpha = opacity !== undefined ? opacity : 1;
+  ctx.imageSmoothingEnabled = true;
+  ctx.translate(x, y);
+  if (rotationDeg) ctx.rotate(rotationDeg * Math.PI / 180);
+  if (flip) ctx.scale(-1, 1);
+  ctx.drawImage(sheet.img, f.x, f.y, f.w, f.h, -w / 2, -h, w, h);
+  ctx.restore();
+}
+
+// Desenha uma camada de fundo real (floresta/árvores/chão/rochas/nuvens) repetida horizontalmente
+// até cobrir toda a largura, ancorada pela borda de baixo (baselineY) — com deriva horizontal
+// contínua opcional (scrollSpeed) pra dar sensação de paralaxe/vida sem repetir estático.
+function drawTiledStrip(ctx, sheetName, canvasWidth, baselineY, displayH, opacity, scrollSpeed, timeInCycle) {
+  const sheet = riverSprites[sheetName];
+  if (!sheet || !sheet.loaded) return;
+  const scale = displayH / sheet.img.height;
+  const tileW = sheet.img.width * scale;
+  const scroll = scrollSpeed ? ((timeInCycle * scrollSpeed) % tileW + tileW) % tileW : 0;
+  const y = baselineY - displayH;
+  ctx.save();
+  ctx.globalAlpha = opacity !== undefined ? opacity : 1;
+  for (let x = -tileW + scroll; x < canvasWidth + tileW; x += tileW) {
+    ctx.drawImage(sheet.img, x, y, tileW, displayH);
+  }
+  ctx.restore();
+}
+
 const actionMessages = {
   tree: [
     "🌱 As árvores protegem o rio!",
@@ -46,48 +132,184 @@ const actionMessages = {
     "🔍 Poluição sob controle!",
     "✅ Fábrica regulamentada!",
     "🛡️ Rio protegido da industria!"
+  ],
+  sanitation: [
+    "🚰 Nova rede de esgoto conectada!",
+    "🏗️ Estação de tratamento em obras!",
+    "🔧 Menos esgoto cru chegando ao rio!",
+    "🚿 Saneamento transformando a cidade!"
   ]
 };
 
-// Sistema de desbloqueio progressivo de ações
+// Sistema de desbloqueio progressivo de ações (define também os atos)
 const actionUnlock = {
   clean: 1,
   tree: 3,
   recycle: 5,
-  factory: 7
+  factory: 7,
+  sanitation: 10,
+  psa: 13
 };
 
-// Explicações mostradas quando uma ação é desbloqueada
 const unlockInfo = {
   clean: {
-    icon: '🗑️',
-    title: 'Limpar o Rio',
+    icon: '🗑️', title: 'Limpar o Rio',
     description: 'Essa é sua ação mais direta: remover o lixo visível da água. Faz efeito rápido (1 dia) ' +
       'e está sempre disponível — use-a sempre que puder como sua base de trabalho diário.'
   },
   tree: {
-    icon: '🌳',
-    title: 'Plantar Árvores',
-    description: 'As raízes das árvores seguram o solo das margens e evitam que sedimento e lama caiam no rio. ' +
-      'O efeito demora 3 dias para amadurecer, mas é duradouro e ajuda o rio a se recuperar sozinho com o tempo.'
+    icon: '🌳', title: 'Plantar Árvores',
+    description: 'As raízes da mata ciliar seguram o solo das margens e filtram nutrientes e produtos ' +
+      'químicos antes que cheguem à água. O efeito demora 3 dias para amadurecer, mas é duradouro.'
   },
   recycle: {
-    icon: '♻️',
-    title: 'Campanha de Reciclagem',
+    icon: '♻️', title: 'Campanha de Reciclagem',
     description: 'Educar a comunidade reduz a quantidade de lixo que chega ao rio no futuro. ' +
       'O efeito leva 2 dias e fica ainda mais forte quando a população se engaja em conjunto.'
   },
   factory: {
-    icon: '🏭',
-    title: 'Fiscalizar Fábrica',
+    icon: '🏭', title: 'Fiscalizar Fábrica',
     description: 'Fiscalizar a indústria local não limpa o rio na hora, mas reduz o estrago de futuros ' +
       'vazamentos químicos. Pense nela como um seguro contra os piores eventos aleatórios.'
+  },
+  sanitation: {
+    icon: '🚰', title: 'Rede de Esgoto e Estação de Tratamento',
+    description: 'A maior causa da poluição em rios urbanos é o esgoto que chega sem tratamento. ' +
+      'Construir e conectar redes de esgoto a uma estação de tratamento é caro e demorado (4 dias), ' +
+      'mas é a intervenção mais estrutural que existe — bem-vindo ao Ato 2.'
+  },
+  psa: {
+    icon: '💧', title: 'Proteção de Nascentes (PSA)',
+    description: 'Você firma um programa de Pagamento por Serviços Ambientais: proprietários rurais ' +
+      'são remunerados para conservar as nascentes e a mata ciliar no início do rio. É uma ação única ' +
+      'e definitiva — a partir de agora, o rio perde qualidade bem mais devagar entre um dia e outro.'
   }
 };
 
 let unlockQueue = [];
 let unlockCountdownInterval = null;
 let hasSeenIntro = false;
+
+// Marcos narrativos por qualidade (mostrados na caixa de diálogo)
+const milestones = [
+  { threshold: 25, message: "🐛 Alguns insetos aquáticos resistentes voltaram a aparecer nas margens.", color: "#88ff44" },
+  { threshold: 50, message: "🐟 Peixes pequenos foram avistados! O rio começa a respirar de novo.", color: "#00ff88" },
+  { threshold: 75, message: "🚶 Moradores voltaram a caminhar e sentar nas margens do rio.", color: "#4fc3f7" },
+  { threshold: 95, message: "🌅 A água está quase cristalina. Falta muito pouco!", color: "#ffd23f" }
+];
+
+// Atos da história (definidos pelos dias em que novas ações aparecem)
+function getActForDay(d) {
+  if (d < actionUnlock.sanitation) return { n: 1, name: "Ato 1: Mobilização" };
+  if (d < 17) return { n: 2, name: "Ato 2: Intervenção Estrutural" };
+  return { n: 3, name: "Ato 3: Consolidação Ecológica" };
+}
+
+function checkActChange() {
+  const act = getActForDay(day);
+  document.getElementById('act-label').textContent = act.name;
+  if (act.n !== currentAct) {
+    currentAct = act.n;
+    if (act.n === 2) showMessage("📖 Ato 2 começa: agora dá pra atacar a causa estrutural da poluição.", "#5aa9e6");
+    if (act.n === 3) showMessage("📖 Ato 3 começa: hora de proteger o que foi conquistado.", "#34d1c6");
+  }
+}
+
+function checkMilestones() {
+  const percent = (quality / QUALITY_TARGET) * 100;
+  milestones.forEach(m => {
+    if (percent >= m.threshold && !shownMilestones.has(m.threshold)) {
+      shownMilestones.add(m.threshold);
+      showMessage(m.message, m.color);
+    }
+  });
+}
+
+function dailyDecay() {
+  return psaActive ? 1 : 3;
+}
+
+// ==================== SOM (Web Audio API) ====================
+function playSound(type) {
+  if (!soundEnabled) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    const now = audioCtx.currentTime;
+    const presets = {
+      action:  { freq: 520,  dur: 0.12, type: 'sine',   vol: 0.08 },
+      good:    { freq: 660,  dur: 0.18, type: 'sine',   vol: 0.1  },
+      bad:     { freq: 180,  dur: 0.28, type: 'sawtooth', vol: 0.07 },
+      victory: { freq: 880,  dur: 0.35, type: 'triangle', vol: 0.12 },
+      day:     { freq: 440,  dur: 0.08, type: 'sine',   vol: 0.06 },
+    };
+    const p = presets[type] || presets.action;
+    osc.type = p.type;
+    osc.frequency.setValueAtTime(p.freq, now);
+    if (type === 'victory') osc.frequency.exponentialRampToValueAtTime(1320, now + p.dur);
+    gain.gain.setValueAtTime(p.vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + p.dur);
+    osc.start(now);
+    osc.stop(now + p.dur);
+  } catch (_) { /* áudio indisponível */ }
+}
+
+// ==================== LIBRAS (VLibras) ====================
+function updateLibrasWidget() {
+  const widget = document.getElementById('vlibras-widget');
+  if (widget) widget.style.display = librasEnabled ? '' : 'none';
+}
+
+function hasActionProtection(type) {
+  return appliedActions.has(type) || pendingActions.some(a => a.type === type);
+}
+
+function hasActionBonus(type) {
+  if (type === 'tree') {
+    return appliedActions.has('tree') || plantedTrees.length > 0 ||
+      pendingActions.some(a => a.type === 'tree');
+  }
+  return appliedActions.has(type) || pendingActions.some(a => a.type === type);
+}
+
+function applyQualityChange(delta) {
+  quality = Math.max(0, Math.min(QUALITY_TARGET, quality + delta));
+}
+
+function resetGameState() {
+  quality = 24;
+  points = 0;
+  day = 1;
+  pendingActions = [];
+  appliedActions = new Set();
+  plantedTrees = [];
+  visualEffects = [];
+  screenFlash = null;
+  psaActive = false;
+  currentAct = 1;
+  shownMilestones = new Set();
+  activeEvents = [];
+  unlockQueue = [];
+  hasSeenIntro = false;
+  dayTransitionInProgress = false;
+  clearInterval(unlockCountdownInterval);
+  unlockCountdownInterval = null;
+  Object.values(actionCooldowns).forEach(c => { c.lastUsed = 0; });
+  document.getElementById('action-unlock-modal').classList.remove('active');
+  document.getElementById('day-transition-overlay').classList.remove('active');
+  document.getElementById('btn-end-turn').disabled = false;
+  document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('psa-done'));
+  canvasStartTime = Date.now();
+  updateUI();
+  updateActionButtons();
+  checkActChange();
+}
 
 function getTimeInCycle() {
   const elapsed = Date.now() - canvasStartTime;
@@ -103,10 +325,10 @@ function drawRiverScene() {
   const width = canvas.width;
   const height = canvas.height;
   const timeInCycle = getTimeInCycle();
+  const qualityPercent = Math.max(0, Math.min(1, quality / QUALITY_TARGET)); // 0 a 1, progresso real do rio
 
-  let phase = (timeInCycle % 180) / 180; // 0 a 1
+  let phase = (timeInCycle % 180) / 180;
 
-  // ===== CÉU =====
   let skyColor1, skyColor2;
   if (phase < 0.25) {
     const t = phase / 0.25;
@@ -132,17 +354,18 @@ function drawRiverScene() {
   ctx.fillRect(0, 0, width, height);
 
   drawClouds(ctx, width, height, timeInCycle, phase);
-  drawHills(ctx, width, height, phase);
-  drawForest(ctx, width, height, phase);
-  drawGrass(ctx, width, height);
-  drawRiverBank(ctx, width, height);
+  drawBackgroundForest(ctx, width, height, timeInCycle);
+  drawBackgroundGround(ctx, width, height);
   drawPlantedTrees(ctx, width, height);
-  drawRiver(ctx, width, height, timeInCycle);
+  drawForegroundRocks(ctx, width, height);
+  drawAquaticPlants(ctx, width, height, timeInCycle, qualityPercent);
+  drawRiver(ctx, width, height, timeInCycle, qualityPercent);
+  drawRiverFish(ctx, width, height, timeInCycle, qualityPercent);
+  drawAmbientBubbles(ctx, width, height, timeInCycle, qualityPercent);
   drawFactory(ctx, width, height, timeInCycle, phase);
   drawVisualEffects(ctx, width, height, timeInCycle);
 
-  // Tingimento noturno suave (preserva cor em vez de escurecer tudo pra preto)
-  const dayBlend = Math.sin(phase * Math.PI); // 0 nas bordas, 1 ao meio-dia
+  const dayBlend = Math.sin(phase * Math.PI);
   const overlayAlpha = (1 - Math.max(0.12, dayBlend)) * 0.42;
   ctx.fillStyle = `rgba(10, 20, 40, ${overlayAlpha})`;
   ctx.fillRect(0, 0, width, height);
@@ -164,321 +387,326 @@ function updateDayNightBadge(phase) {
   if (badge.textContent !== icon) badge.textContent = icon;
 }
 
+// Nuvens reais (formato completo, reconstruído simetricamente), tileadas com deriva horizontal
+// lenta e contínua — sem cortar nenhuma nuvem pela metade.
 function drawClouds(ctx, width, height, timeInCycle, phase) {
-  if (phase > 0.8 || phase < 0.02) return; // sem nuvens visíveis à noite fechada
-  const alpha = phase > 0.7 ? Math.max(0, (0.8 - phase) / 0.1) * 0.5 : 0.5;
+  const sheet = riverSprites.bgClouds;
+  const alpha = phase > 0.8 ? Math.max(0, (1 - phase) / 0.2) : (phase < 0.02 ? phase / 0.02 : 1);
   if (alpha <= 0) return;
-  ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-  for (let i = 0; i < 4; i++) {
-    const cx = ((timeInCycle * 3.5 + i * 220) % (width + 200)) - 100;
-    const cy = 26 + i * 20;
-    drawCloudShape(ctx, cx, cy);
+
+  if (!sheet || !sheet.loaded) {
+    // Fallback vetorial simples enquanto a sheet ainda carrega
+    ctx.fillStyle = `rgba(255,255,255,${alpha * 0.5})`;
+    for (let i = 0; i < 4; i++) {
+      const cx = ((timeInCycle * 3.5 + i * 220) % (width + 200)) - 100;
+      const cy = 26 + i * 20;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+      ctx.arc(cx + 16, cy - 7, 18, 0, Math.PI * 2);
+      ctx.arc(cx + 34, cy, 14, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    return;
   }
+
+  drawTiledStrip(ctx, 'bgClouds', width, 58, 40, alpha * 0.9, 3.2, timeInCycle);
 }
 
-function drawCloudShape(ctx, x, y) {
-  ctx.beginPath();
-  ctx.arc(x, y, 14, 0, Math.PI * 2);
-  ctx.arc(x + 16, y - 7, 18, 0, Math.PI * 2);
-  ctx.arc(x + 34, y, 14, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawHills(ctx, width, height, phase) {
-  const hillY = height - 172;
-  const isNight = phase > 0.78 || phase < 0.03;
-  ctx.fillStyle = isNight ? 'rgba(26,40,58,0.6)' : 'rgba(68,108,88,0.55)';
-  ctx.beginPath();
-  ctx.moveTo(0, height - 158);
-  for (let x = 0; x <= width; x += 30) {
-    const hy = hillY + Math.sin(x * 0.01) * 16;
-    ctx.lineTo(x, hy);
+// ===== Floresta de fundo real (silhueta + 3 densidades de árvores) — estática, sem deriva =====
+function drawBackgroundForest(ctx, width, height, timeInCycle) {
+  const sheet = riverSprites.bgForest;
+  if (!sheet || !sheet.loaded) {
+    // Fallback: floresta procedural simples enquanto as sheets carregam
+    drawTreeLayer(ctx, width, height - 150, 26, 0.4, 101);
+    drawTreeLayer(ctx, width, height - 122, 34, 0.62, 47);
+    drawTreeLayer(ctx, width, height - 96, 44, 0.85, 19);
+    return;
   }
-  ctx.lineTo(width, height - 158);
-  ctx.closePath();
-  ctx.fill();
+  drawTiledStrip(ctx, 'bgForest', width, height - 122, 78, 0.85, 0, timeInCycle);
+  drawTiledStrip(ctx, 'bgTreesDense', width, height - 118, 46, 0.9, 0, timeInCycle);
+  drawTiledStrip(ctx, 'bgTreesMedium', width, height - 108, 44, 0.95, 0, timeInCycle);
+  drawTiledStrip(ctx, 'bgTreesSparse', width, height - 98, 42, 1, 0, timeInCycle);
 }
 
-function drawGrass(ctx, width, height) {
-  const grassY = height - 80;
-  const grassGradient = ctx.createLinearGradient(0, grassY - 15, 0, grassY);
-  grassGradient.addColorStop(0, '#3aa86d');
-  grassGradient.addColorStop(1, '#276b45');
-  ctx.fillStyle = grassGradient;
-  ctx.fillRect(0, grassY - 15, width, 15);
-
-  ctx.fillStyle = 'rgba(255,255,255,0.08)';
-  for (let i = 0; i < width; i += 8) {
-    ctx.fillRect(i, grassY - 12, 2, 6);
+// ===== Chão/margem real — substitui o retângulo de grama e a faixa de barranco antigos =====
+function drawBackgroundGround(ctx, width, height) {
+  const sheet = riverSprites.bgGround;
+  if (!sheet || !sheet.loaded) {
+    // Fallback: grama plana simples enquanto a sheet carrega
+    const grassY = height - 80;
+    const grassGradient = ctx.createLinearGradient(0, grassY - 15, 0, grassY);
+    grassGradient.addColorStop(0, '#3aa86d');
+    grassGradient.addColorStop(1, '#276b45');
+    ctx.fillStyle = grassGradient;
+    ctx.fillRect(0, grassY - 15, width, 15);
+    return;
   }
+  drawTiledStrip(ctx, 'bgGround', width, height - 78, 34, 1, 0, 0);
 }
 
-function drawRiverBank(ctx, width, height) {
-  const riverY = height - 80;
-  ctx.fillStyle = '#7a6a4f';
-  ctx.fillRect(0, riverY - 5, width, 6);
-  ctx.fillStyle = 'rgba(0,0,0,0.15)';
-  ctx.fillRect(0, riverY, width, 3);
+// ===== Rochas e arbustos em primeiro plano, bem na beira da água =====
+function drawForegroundRocks(ctx, width, height) {
+  const sheet = riverSprites.bgRocks;
+  if (!sheet || !sheet.loaded) return;
+  drawTiledStrip(ctx, 'bgRocks', width, height - 78, 28, 1, 0, 0);
 }
 
-// Árvores plantadas pelo jogador (canopy redonda)
 function drawPlantedTrees(ctx, width, height) {
   plantedTrees.forEach((tree) => {
-    drawCanopyTree(ctx, tree.x, height - 92, 16, 1);
+    drawSpriteTree(ctx, tree.x, height - 78, 46, 1, tree.variant);
   });
 }
 
-// Estilo único de árvore (copa redonda em camadas) usado tanto na floresta
-// de fundo quanto nas árvores plantadas, pra manter tudo visualmente coeso.
-function drawCanopyTree(ctx, x, groundY, radius, opacity) {
+// Desenha uma árvore real (ícone recortado de bg_trees_sparse.png), com fallback vetorial
+// enquanto a imagem ainda não carregou.
+function drawSpriteTree(ctx, x, groundY, size, opacity, variantIndex) {
+  const sheet = riverSprites.bgTreesIcons;
+  if (!sheet || !sheet.loaded) { drawCanopyTreeFallback(ctx, x, groundY, size / 2.6, opacity); return; }
+  drawRiverSprite(ctx, 'bgTreesIcons', FRAMES_TREES, variantIndex, x, groundY, size, opacity, false, 0);
+}
+
+// Fallback vetorial simples (usado só até o sprite carregar)
+function drawCanopyTreeFallback(ctx, x, groundY, radius, opacity) {
   const trunkH = radius * 1.6;
   ctx.fillStyle = `rgba(105, 74, 45, ${opacity})`;
   ctx.fillRect(x - radius * 0.18, groundY - trunkH, radius * 0.36, trunkH);
-
-  const canopyY = groundY - trunkH - radius * 0.35;
-
-  ctx.fillStyle = `rgba(30, 92, 48, ${opacity})`;
-  ctx.beginPath();
-  ctx.arc(x, canopyY, radius, 0, Math.PI * 2);
-  ctx.fill();
-
   ctx.fillStyle = `rgba(52, 130, 70, ${opacity})`;
   ctx.beginPath();
-  ctx.arc(x - radius * 0.45, canopyY + radius * 0.25, radius * 0.72, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(x + radius * 0.45, canopyY + radius * 0.25, radius * 0.72, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = `rgba(74, 156, 92, ${opacity * 0.9})`;
-  ctx.beginPath();
-  ctx.arc(x - radius * 0.2, canopyY - radius * 0.25, radius * 0.4, 0, Math.PI * 2);
+  ctx.arc(x, groundY - trunkH - radius * 0.35, radius, 0, Math.PI * 2);
   ctx.fill();
 }
 
-function drawForest(ctx, width, height, phase) {
-  drawTreeLayer(ctx, width, height - 148, 11, 0.35);
-  drawTreeLayer(ctx, width, height - 118, 14, 0.55);
-  drawTreeLayer(ctx, width, height - 96, 17, 0.78);
-  drawUndergrowth(ctx, width, height);
-}
-
-function drawTreeLayer(ctx, width, groundY, radius, opacity) {
-  const spacing = radius * 2.6;
+// Camada de floresta procedural (fallback, só usada enquanto as sheets reais não carregam)
+function drawTreeLayer(ctx, width, groundY, size, opacity, seed) {
+  const spacing = size * 1.05;
   const numTrees = Math.ceil(width / spacing) + 2;
   for (let i = -1; i < numTrees; i++) {
-    const treeX = i * spacing + (Math.sin(i * 0.6) * spacing * 0.2);
-    const r = radius * (0.85 + Math.sin(i * 0.5) * 0.15);
-    drawCanopyTree(ctx, treeX, groundY, r, opacity);
+    const treeX = i * spacing + (Math.sin(i * 0.6 + seed) * spacing * 0.25);
+    const s = size * (0.85 + Math.sin(i * 0.5 + seed) * 0.15);
+    const variantIndex = Math.abs((i * 5 + seed) % FRAMES_TREES.length);
+    drawSpriteTree(ctx, treeX, groundY, s, opacity, variantIndex);
   }
 }
 
-function drawUndergrowth(ctx, width, height) {
-  const grassY = height - 95;
+// ===== Plantas aquáticas reais (junco/lírios), surgem na margem conforme a qualidade sobe =====
+function drawAquaticPlants(ctx, width, height, timeInCycle, qualityPercent) {
+  const sheet = riverSprites.plants;
+  if (!sheet || !sheet.loaded) return;
 
-  ctx.fillStyle = 'rgba(45, 90, 55, 0.7)';
-  for (let i = 0; i < width; i += 60) {
-    ctx.beginPath();
-    ctx.arc(i + 20, grassY - 6, 16, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(i + 40, grassY - 8, 14, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  const riverY = height - 80;
+  // Quantidade de plantas cresce com a qualidade (começa a aparecer a partir de ~15%)
+  const maxSlots = 14;
+  const count = Math.round(Math.max(0, qualityPercent - 0.15) / 0.85 * maxSlots);
+  if (count <= 0) return;
 
-  ctx.fillStyle = 'rgba(210, 70, 120, 0.55)';
-  for (let i = 0; i < width; i += 80) {
-    ctx.beginPath();
-    ctx.arc(i + 30, grassY - 4, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(i + 50, grassY - 2, 2.5, 0, Math.PI * 2);
-    ctx.fill();
+  for (let i = 0; i < count; i++) {
+    // Posição determinística (não pula de lugar a cada frame), espalhada pela margem
+    const seed = i * 97 + 13;
+    const spacing = width / maxSlots;
+    const x = spacing * i + (Math.sin(seed) * spacing * 0.35) + spacing / 2;
+    const sway = Math.sin(timeInCycle * 0.8 + seed) * 2; // balanço suave, dá vida à cena
+    const variant = (i * 3 + 1) % FRAMES_PLANTS.length;
+    const targetH = 26 + (seed % 10);
+    ctx.save();
+    ctx.translate(sway, 0);
+    drawRiverSprite(ctx, 'plants', FRAMES_PLANTS, variant, x, riverY + 4, targetH, 0.95, i % 2 === 0);
+    ctx.restore();
   }
 }
 
-function drawRiver(ctx, width, height, timeInCycle) {
+// ===== Peixes reais nadando no rio, quantidade cresce com a qualidade =====
+function drawRiverFish(ctx, width, height, timeInCycle, qualityPercent) {
+  const sheet = riverSprites.fish;
+  if (!sheet || !sheet.loaded) return;
+
+  const riverY = height - 80;
+  const riverHeight = 80;
+  // Só aparecem peixes a partir de ~25% de qualidade (água já respirável)
+  const maxFish = 7;
+  const count = Math.round(Math.max(0, qualityPercent - 0.25) / 0.75 * maxFish);
+  if (count <= 0) return;
+
+  for (let i = 0; i < count; i++) {
+    const seed = i * 53 + 7;
+    const laneY = riverY + 18 + (i % 4) * 14 + Math.sin(seed) * 4;
+    const speed = 28 + (seed % 20); // px/s, cada peixe com velocidade levemente diferente
+    const goingRight = i % 2 === 0;
+    const travel = (width + 120);
+    const t = (timeInCycle * speed + (seed % travel)) % travel;
+    const x = goingRight ? (t - 60) : (width - t + 60);
+    const bob = Math.sin(timeInCycle * 3 + seed) * 3;
+    const variant = (i * 2) % FRAMES_FISH.length;
+    // Os sprites de peixe já vêm virados pra direita por padrão, então só espelhamos
+    // quando o peixe está nadando pra ESQUERDA.
+    drawRiverSprite(ctx, 'fish', FRAMES_FISH, variant, x, laneY + bob, 18, 0.9, !goingRight);
+  }
+}
+
+// ===== Rio: base real (bg_water tileado com correnteza + leve ondulação) + tingimento pela
+// qualidade + brilho animado por cima =====
+function drawRiver(ctx, width, height, timeInCycle, qualityPercent) {
   const riverY = height - 80;
   const riverHeight = 80;
 
-  ctx.beginPath();
-  ctx.moveTo(0, riverY);
+  const riverCleanness = quality / QUALITY_TARGET;
 
-  const waveAmplitude = 8;
-  const waveFrequency = 0.02;
-  const waveSpeed = timeInCycle * 2;
-
-  for (let x = 0; x <= width; x += 5) {
-    const waveY = Math.sin((x * waveFrequency) + waveSpeed) * waveAmplitude;
-    ctx.lineTo(x, riverY + waveY);
-  }
-
-  ctx.lineTo(width, riverY + riverHeight);
-  ctx.lineTo(0, riverY + riverHeight);
-  ctx.closePath();
-
-  const riverCleanness = quality / 100;
-  let riverColor1, riverColor2;
-
-  if (riverCleanness > 0.7) {
-    riverColor1 = '#2980b9';
-    riverColor2 = '#1a5276';
-  } else if (riverCleanness > 0.4) {
-    riverColor1 = '#4a7c3f';
-    riverColor2 = '#2d5a2d';
+  let tintColor;
+  if (riverCleanness > 0.70) {
+    tintColor = "rgba(41,128,185,0.20)";
+  } else if (riverCleanness > 0.40) {
+    tintColor = "rgba(80,150,90,0.28)";
   } else {
-    riverColor1 = '#5d4037';
-    riverColor2 = '#3e2723';
+    tintColor = "rgba(95,70,55,0.45)";
   }
 
-  const riverGradient = ctx.createLinearGradient(0, riverY, 0, riverY + riverHeight);
-  riverGradient.addColorStop(0, riverColor1);
-  riverGradient.addColorStop(1, riverColor2);
-  ctx.fillStyle = riverGradient;
-  ctx.fill();
+  const sheet = riverSprites.bgWater;
+
+  if (sheet && sheet.loaded) {
+    const scale = riverHeight / sheet.img.height;
+    const tileWidth = sheet.img.width * scale;
+
+    // Correnteza
+    const scroll = ((timeInCycle * 18) % tileWidth + tileWidth) % tileWidth;
+
+    ctx.save();
+
+    // Recorta somente a área do rio
+    ctx.beginPath();
+    ctx.rect(0, riverY, width, riverHeight);
+    ctx.clip();
+
+    // Água com pequena ondulação
+    for (let x = -tileWidth + scroll; x < width + tileWidth; x += tileWidth) {
+      const wave = Math.sin((x * 0.01) + (timeInCycle * 2.5)) * 2;
+      ctx.drawImage(sheet.img, x, riverY + wave, tileWidth, riverHeight);
+    }
+
+    // Cor da água conforme qualidade
+    ctx.fillStyle = tintColor;
+    ctx.fillRect(0, riverY, width, riverHeight);
+
+    // Brilho se movendo
+    ctx.globalAlpha = 0.12;
+    const shineX = ((timeInCycle * 70) % (width + 250)) - 250;
+    const gradient = ctx.createLinearGradient(shineX, 0, shineX + 180, 0);
+    gradient.addColorStop(0, "rgba(255,255,255,0)");
+    gradient.addColorStop(0.5, "rgba(255,255,255,1)");
+    gradient.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, riverY, width, riverHeight);
+
+    // Camada animada de água (water_anim_sheet)
+    const animSheet = riverSprites.bgWateranimation;
+    if (animSheet && animSheet.loaded) {
+      const frameCount = 4;
+      const frameW = animSheet.img.width / frameCount;
+      const frameH = animSheet.img.height;
+      const frameIdx = Math.floor((timeInCycle * 8) % frameCount);
+      const animTileW = frameW * scale;
+      const animScroll = ((timeInCycle * 22) % animTileW + animTileW) % animTileW;
+      ctx.globalAlpha = 0.32;
+      for (let x = -animTileW + animScroll; x < width + animTileW; x += animTileW) {
+        const wave = Math.sin((x * 0.01) + (timeInCycle * 2.5)) * 2;
+        ctx.drawImage(animSheet.img, frameIdx * frameW, 0, frameW, frameH, x, riverY + wave, animTileW, riverHeight);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.restore();
+
+  } else {
+    ctx.fillStyle = "#4b6d8c";
+    ctx.fillRect(0, riverY, width, riverHeight);
+  }
 
   drawRiverPollution(ctx, width, riverY, riverHeight, riverCleanness);
-
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
 }
 
+// Bolhas ambientais no rio — quantidade e opacidade crescem com a qualidade
+function drawAmbientBubbles(ctx, width, height, timeInCycle, qualityPercent) {
+  const sheet = riverSprites.effects;
+  if (!sheet || !sheet.loaded || qualityPercent < 0.15) return;
+
+  const riverY = height - 80;
+  const maxBubbles = Math.round(qualityPercent * 14);
+  for (let i = 0; i < maxBubbles; i++) {
+    const seed = i * 41 + 17;
+    const x = (seed * 73) % (width - 40) + 20;
+    const cycle = 4 + (seed % 3);
+    const t = ((timeInCycle + seed * 0.1) % cycle) / cycle;
+    const y = riverY + 68 - t * 52;
+    const frameIdx = BUBBLE_FRAME_INDICES[i % BUBBLE_FRAME_INDICES.length];
+    const alpha = (1 - t) * 0.5 * Math.min(1, qualityPercent * 1.2);
+    drawRiverSprite(ctx, 'effects', FRAMES_EFFECTS, frameIdx, x, y, 10 + (seed % 6), alpha, false, 0);
+  }
+}
+
+// Lixo real (sprites recortados da referência) boiando no rio — quantidade cai conforme o rio melhora
 function drawRiverPollution(ctx, width, riverY, riverHeight, cleanness) {
   const pollutionAmount = Math.floor((1 - cleanness) * 18);
   const seed = Math.floor(quality / 10) * 10;
+  const sheetReady = riverSprites.trash && riverSprites.trash.loaded;
 
   for (let i = 0; i < pollutionAmount; i++) {
     const rng = ((seed + i) * 73856093) ^ (((seed + i) * 19349663) << 13);
     const x = (rng % (width - 30)) + 15;
     const y = riverY + 15 + ((rng >> 16) % (riverHeight - 40));
-
-    const trashType = (rng >> 8) % 5;
     const rotation = (rng % 40) - 20;
 
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rotation * Math.PI / 180);
-
-    ctx.fillStyle = '#2c2c2c';
-    ctx.strokeStyle = '#1a1a1a';
-    ctx.lineWidth = 1.5;
-
-    if (trashType === 0) {
-      ctx.fillStyle = '#4fc3f7';
-      ctx.beginPath();
-      ctx.roundRect(-6, -18, 12, 36, 4);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = '#81d4fa';
-      ctx.fillRect(-3, -22, 6, 8);
-      ctx.fillStyle = '#ff9800';
-      ctx.fillRect(-4, -25, 8, 4);
-
-    } else if (trashType === 1) {
-      ctx.fillStyle = '#ff80ab';
-      ctx.beginPath();
-      ctx.moveTo(-12, -10);
-      ctx.quadraticCurveTo(-18, 8, -10, 18);
-      ctx.quadraticCurveTo(0, 12, 14, 16);
-      ctx.quadraticCurveTo(18, 0, 10, -14);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-      ctx.beginPath();
-      ctx.moveTo(-8, -5);
-      ctx.lineTo(6, 8);
-      ctx.stroke();
-
-    } else if (trashType === 2) {
-      ctx.fillStyle = '#8d5524';
-      ctx.beginPath();
-      ctx.ellipse(0, 2, 7, 18, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = '#5d4037';
-      ctx.fillRect(-4, -18, 8, 6);
-
-    } else if (trashType === 3) {
-      ctx.fillStyle = '#455a64';
-      ctx.fillRect(-14, -8, 28, 16);
-
-      ctx.fillStyle = '#607d8b';
-      ctx.fillRect(-10, -12, 12, 8);
-      ctx.fillRect(4, -6, 10, 10);
-
-      ctx.fillStyle = '#ff5722';
-      ctx.fillRect(-8, -4, 6, 4);
-
+    if (sheetReady) {
+      const trashIndex = Math.abs(rng >> 8) % FRAMES_TRASH.length;
+      const bobble = Math.sin(getTimeInCycle() * 1.6 + rng % 100) * 2; // boiando suavemente
+      drawRiverSprite(ctx, 'trash', FRAMES_TRASH, trashIndex, x, y + bobble, 24, 1, (rng >> 4) % 2 === 0, rotation * 0.4);
     } else {
-      ctx.fillStyle = '#90a4ae';
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 9, 14, Math.PI / 6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = '#e1f5fe';
-      ctx.fillRect(-6, -10, 12, 4);
+      // Fallback vetorial simples enquanto a sheet ainda carrega
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation * Math.PI / 180);
+      ctx.fillStyle = '#455a64';
+      ctx.fillRect(-8, -8, 16, 16);
+      ctx.restore();
     }
-
-    ctx.restore();
   }
 }
 
+// ===== Fábrica real, na margem direita — com fumaça animada saindo das chaminés =====
 function drawFactory(ctx, width, height, timeInCycle, phase) {
-  const factoryX = width * 0.75;
-  const factoryY = height - 140;
-  const factoryWidth = 80;
-  const factoryHeight = 60;
+  const sheet = riverSprites.bgFactory;
+  if (!sheet || !sheet.loaded) return;
+  const targetH = 120;
+  const scale = targetH / sheet.img.height;
+  const w = sheet.img.width * scale;
+  const baseX = width * 0.74;
+  const baseY = height - 78; // mesma linha de base da margem/rio
+  ctx.drawImage(sheet.img, baseX - w / 2, baseY - targetH, w, targetH);
+  drawFactorySmoke(ctx, baseX, baseY - targetH, w, timeInCycle);
+}
 
-  // Sombra no chão pra "grudar" a fábrica no cenário
-  ctx.fillStyle = 'rgba(0,0,0,0.25)';
-  ctx.beginPath();
-  ctx.ellipse(factoryX + factoryWidth / 2, factoryY + factoryHeight + 3, factoryWidth / 2, 7, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = '#8b7355';
-  ctx.fillRect(factoryX, factoryY, factoryWidth, factoryHeight);
-
-  ctx.fillStyle = '#3e2723';
-  ctx.fillRect(factoryX + factoryWidth / 2 - 8, factoryY + factoryHeight - 18, 16, 18);
-
-  ctx.fillStyle = 'rgba(255, 200, 0, 0.6)';
-  for (let i = 0; i < 3; i++) {
-    for (let j = 0; j < 2; j++) {
-      ctx.fillRect(factoryX + 10 + i * 20, factoryY + 10 + j * 15, 10, 8);
+// Duas chaminés de fumaça saindo do topo da fábrica — a arte da fábrica é estática, então essa
+// é a "vida" que ela ganha: bolhas de fumaça subindo e se dissipando continuamente.
+function drawFactorySmoke(ctx, factoryCenterX, factoryTopY, factoryW, timeInCycle) {
+  const chimneys = [
+    { dx: -factoryW * 0.16, seedOffset: 0 },
+    { dx: factoryW * 0.10, seedOffset: 3.1 },
+  ];
+  chimneys.forEach((chimney) => {
+    const cx = factoryCenterX + chimney.dx;
+    const cy = factoryTopY + factoryW * 0.06;
+    for (let i = 0; i < 3; i++) {
+      const cycle = 3.2;
+      const t = ((timeInCycle + chimney.seedOffset + i * (cycle / 3)) % cycle) / cycle; // 0..1
+      const riseY = cy - t * 34;
+      const driftX = cx + Math.sin(t * Math.PI * 2 + chimney.seedOffset) * 6 + t * 10;
+      const radius = 4 + t * 7;
+      const alpha = (1 - t) * 0.35;
+      ctx.fillStyle = `rgba(210, 210, 214, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(driftX, riseY, radius, 0, Math.PI * 2);
+      ctx.fill();
     }
-  }
-
-  drawChimney(ctx, factoryX + 15, factoryY - 5, timeInCycle, phase);
-  drawChimney(ctx, factoryX + 40, factoryY - 8, timeInCycle, phase);
-  drawChimney(ctx, factoryX + 65, factoryY - 3, timeInCycle, phase);
+  });
 }
 
-function drawChimney(ctx, x, y, timeInCycle, phase) {
-  const chimneyWidth = 12;
-  const chimneyHeight = 40;
-
-  ctx.fillStyle = '#654321';
-  ctx.fillRect(x - chimneyWidth / 2, y - chimneyHeight, chimneyWidth, chimneyHeight);
-
-  const smokeIntensity = 0.6 + Math.sin(timeInCycle * 0.05) * 0.2;
-  ctx.fillStyle = `rgba(150, 150, 150, ${smokeIntensity * 0.5})`;
-
-  for (let i = 0; i < 3; i++) {
-    const offsetY = (timeInCycle * 0.5 + i * 0.3) % 40;
-    const offsetX = Math.sin((timeInCycle * 0.02) + i) * 8;
-    ctx.beginPath();
-    ctx.arc(x + offsetX, y - chimneyHeight - offsetY, 6 + i * 2, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-// ===== EFEITOS VISUAIS DE AÇÕES (todas as 4 ações) =====
 function drawVisualEffects(ctx, width, height, timeInCycle) {
   visualEffects = visualEffects.filter(eff => Date.now() - eff.startTime < eff.duration);
 
@@ -488,14 +716,12 @@ function drawVisualEffects(ctx, width, height, timeInCycle) {
 
     if (eff.type === 'tree_planted') {
       const scale = progress * 0.8 + 0.2;
-      ctx.globalAlpha = 1 - (progress * 0.3);
       ctx.save();
       ctx.translate(eff.x, eff.y);
       ctx.scale(scale, scale);
       ctx.translate(-eff.x, -eff.y);
-      drawCanopyTree(ctx, eff.x, eff.y + 10, 14, 1);
+      drawSpriteTree(ctx, eff.x, eff.y + 20, 40, 1 - (progress * 0.3), eff.variant || 0);
       ctx.restore();
-      ctx.globalAlpha = 1;
 
     } else if (eff.type === 'clean_action') {
       ctx.globalAlpha = 1 - progress;
@@ -503,9 +729,7 @@ function drawVisualEffects(ctx, width, height, timeInCycle) {
         const bx = eff.x + Math.sin(i * 2 + progress * 6) * 22;
         const by = eff.y - progress * 45 - i * 6;
         ctx.fillStyle = i % 2 === 0 ? '#bdeaff' : '#4fc3f7';
-        ctx.beginPath();
-        ctx.arc(bx, by, 4 - progress * 2, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(bx, by, 4 - progress * 2, 0, Math.PI * 2); ctx.fill();
       }
       ctx.globalAlpha = 1;
 
@@ -529,6 +753,26 @@ function drawVisualEffects(ctx, width, height, timeInCycle) {
       ctx.fillText('🛡️', 0, 0);
       ctx.restore();
       ctx.globalAlpha = 1;
+
+    } else if (eff.type === 'sanitation_action') {
+      ctx.globalAlpha = 1 - progress;
+      ctx.save();
+      ctx.translate(eff.x, eff.y - progress * 15);
+      ctx.font = `${18 + progress * 6}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('🚰', 0, 0);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+
+    } else if (eff.type === 'psa_action') {
+      ctx.globalAlpha = 1 - progress;
+      ctx.save();
+      ctx.translate(eff.x, eff.y - progress * 30);
+      ctx.font = `${22 + Math.sin(progress * Math.PI) * 10}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('💧', 0, 0);
+      ctx.restore();
+      ctx.globalAlpha = 1;
     }
   });
 }
@@ -545,8 +789,8 @@ function drawScreenFlash(ctx, width, height) {
   ctx.globalAlpha = 1;
 }
 
-function addVisualEffect(type, x, y, duration = 1000) {
-  visualEffects.push({ type, x, y, startTime: Date.now(), duration });
+function addVisualEffect(type, x, y, duration = 1000, extra = {}) {
+  visualEffects.push({ type, x, y, startTime: Date.now(), duration, ...extra });
 }
 
 function triggerScreenFlash(color, duration = 900) {
@@ -554,8 +798,7 @@ function triggerScreenFlash(color, duration = 900) {
 }
 
 function lerpColor(color1, color2, t) {
-  const c1 = hexToRgb(color1);
-  const c2 = hexToRgb(color2);
+  const c1 = hexToRgb(color1), c2 = hexToRgb(color2);
   const r = Math.round(c1.r + (c2.r - c1.r) * t);
   const g = Math.round(c1.g + (c2.g - c1.g) * t);
   const b = Math.round(c1.b + (c2.b - c1.b) * t);
@@ -564,11 +807,7 @@ function lerpColor(color1, color2, t) {
 
 function hexToRgb(hex) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : { r: 0, g: 0, b: 0 };
+  return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : { r: 0, g: 0, b: 0 };
 }
 
 function updateBackgroundByTime() {
@@ -577,10 +816,12 @@ function updateBackgroundByTime() {
 }
 
 const actionCooldowns = {
-  tree: { lastUsed: 0, cooldown: 3, name: '🌳 Plantar Árvores' },
-  clean: { lastUsed: 0, cooldown: 2, name: '🗑️ Limpar o Rio' },
-  recycle: { lastUsed: 0, cooldown: 2, name: '♻️ Campanha de Reciclagem' },
-  factory: { lastUsed: 0, cooldown: 4, name: '🏭 Fiscalizar Fábrica' }
+  tree: { lastUsed: 0, cooldown: 4 },
+  clean: { lastUsed: 0, cooldown: 2 },
+  recycle: { lastUsed: 0, cooldown: 3 },
+  factory: { lastUsed: 0, cooldown: 4 },
+  sanitation: { lastUsed: 0, cooldown: 6 },
+  psa: { lastUsed: 0, cooldown: 9999 }
 };
 
 const qualityBar = document.getElementById('quality-bar');
@@ -603,14 +844,12 @@ function updateUI() {
   else qualityBar.classList.remove('critical');
 }
 
-// ===== Caixa de diálogo do Guardião (fixa, sempre visível) =====
 function showMessage(text, color = "#eaf6ff") {
   if (!text) return;
   messageEl.textContent = text;
   messageEl.style.color = color;
-
   dialogueBoxEl.classList.remove('flash');
-  void dialogueBoxEl.offsetWidth; // força reinício da animação
+  void dialogueBoxEl.offsetWidth;
   dialogueBoxEl.classList.add('flash');
 }
 
@@ -626,14 +865,17 @@ function addPendingAction(type, value, days) {
 
   if (type === 'tree') {
     const treeX = 100 + Math.random() * 400;
-    plantedTrees.push({ x: treeX });
-    addVisualEffect('tree_planted', treeX, 180, 1500);
+    const variant = randomTreeVariant();
+    plantedTrees.push({ x: treeX, variant });
+    addVisualEffect('tree_planted', treeX, 180, 1500, { variant });
   } else if (type === 'clean') {
     addVisualEffect('clean_action', 200 + Math.random() * 250, 210, 1200);
   } else if (type === 'recycle') {
     addVisualEffect('recycle_action', 150 + Math.random() * 300, 150, 1300);
   } else if (type === 'factory') {
     addVisualEffect('factory_action', 600, 100, 1400);
+  } else if (type === 'sanitation') {
+    addVisualEffect('sanitation_action', 350, 190, 1400);
   }
 
   showMessage(`${message}\n⏳ Efeito em ${days} dia(s)`, "#22ff88");
@@ -645,6 +887,7 @@ function processPendingActions() {
     action.daysLeft--;
     if (action.daysLeft <= 0) {
       quality = Math.min(QUALITY_TARGET, quality + action.value);
+      appliedActions.add(action.type);
       pendingActions.splice(i, 1);
     }
   }
@@ -677,35 +920,49 @@ function triggerRandomEvent() {
 }
 
 function triggerEvent(event) {
-  activeEvents.push({ ...event, daysLeft: event.duration, id: Date.now() });
-
   let finalEffect = event.effect;
   let finalMsg = event.message;
 
-  if (event.bonus_if && pendingActions.some(a => a.type === event.bonus_if)) {
-    finalEffect = Math.abs(finalEffect) * 1.3;
+  if (event.bonus_if && hasActionBonus(event.bonus_if)) {
+    finalEffect *= 1.3;
     finalMsg += " (Ação complementar!)";
   }
-
-  if (event.blocked_by && pendingActions.some(a => a.type === event.blocked_by)) {
-    finalEffect = Math.abs(finalEffect) * 0.5;
+  if (event.blocked_by && hasActionProtection(event.blocked_by)) {
+    finalEffect *= 0.5;
     finalMsg += " (Parcialmente evitado!)";
   }
 
-  quality = Math.max(0, Math.min(QUALITY_TARGET, quality + finalEffect));
+  const dailyEffect = finalEffect / event.duration;
+  applyQualityChange(dailyEffect);
   showMessage(finalMsg, event.color);
   triggerScreenFlash(finalEffect < 0 ? '#ff2d2d' : event.color);
+  playSound(finalEffect < 0 ? 'bad' : 'good');
+
+  if (event.duration > 1) {
+    activeEvents.push({
+      dailyEffect,
+      daysLeft: event.duration - 1,
+      message: event.name,
+      color: event.color
+    });
+  }
 }
 
 function processActiveEvents() {
   for (let i = activeEvents.length - 1; i >= 0; i--) {
     const evt = activeEvents[i];
-    evt.daysLeft--;
+    if (evt.daysLeft > 0) {
+      applyQualityChange(evt.dailyEffect);
+      showMessage(`${evt.message} (continua...)`, evt.color);
+      playSound(evt.dailyEffect < 0 ? 'bad' : 'good');
+      evt.daysLeft--;
+    }
     if (evt.daysLeft <= 0) activeEvents.splice(i, 1);
   }
 }
 
 function showVictoryScreen() {
+  playSound('victory');
   document.getElementById('screen-game').classList.remove('active');
   document.getElementById('screen-victory').classList.add('active');
   document.getElementById('final-quality').textContent = Math.round((quality / QUALITY_TARGET) * 100) + "%";
@@ -714,6 +971,7 @@ function showVictoryScreen() {
 }
 
 function showGameOverScreen() {
+  playSound('bad');
   document.getElementById('screen-game').classList.remove('active');
   document.getElementById('screen-gameover').classList.add('active');
   document.getElementById('go-final-days').textContent = day;
@@ -724,9 +982,7 @@ function showGameOverScreen() {
 function queueUnlockModal(type) {
   unlockQueue.push(type);
   const modal = document.getElementById('action-unlock-modal');
-  if (!modal.classList.contains('active')) {
-    showNextUnlockModal();
-  }
+  if (!modal.classList.contains('active')) showNextUnlockModal();
 }
 
 function showNextUnlockModal() {
@@ -741,7 +997,6 @@ function showNextUnlockModal() {
 
   const modal = document.getElementById('action-unlock-modal');
   const btn = document.getElementById('btn-unlock-ok');
-
   modal.classList.add('active');
 
   let secondsLeft = 5;
@@ -762,48 +1017,73 @@ function showNextUnlockModal() {
 }
 
 document.getElementById('btn-unlock-ok').addEventListener('click', () => {
-  const modal = document.getElementById('action-unlock-modal');
-  modal.classList.remove('active');
+  document.getElementById('action-unlock-modal').classList.remove('active');
   showNextUnlockModal();
 });
 
-// ==================== EVENT LISTENERS ====================
+// ==================== TRANSIÇÃO DE DIA ====================
+function startDayTransition() {
+  if (dayTransitionInProgress) return;
+  dayTransitionInProgress = true;
+  playSound('day');
+  document.getElementById('btn-end-turn').disabled = true;
+  document.getElementById('day-transition-overlay').classList.add('active');
 
-document.getElementById('btn-end-turn').addEventListener('click', () => {
+  setTimeout(resolveDayTransition, 2400);
+}
+
+function resolveDayTransition() {
   day++;
   processPendingActions();
-  quality = Math.max(0, quality - 3);
+  quality = Math.max(0, quality - dailyDecay());
   triggerRandomEvent();
   updateUI();
   updateBackgroundByTime();
   updateActionButtons();
+  checkActChange();
+  checkMilestones();
+
+  document.getElementById('day-transition-overlay').classList.remove('active');
+  document.getElementById('btn-end-turn').disabled = false;
+  dayTransitionInProgress = false;
 
   Object.keys(actionUnlock).forEach(type => {
-    if (type !== 'clean' && day === actionUnlock[type]) {
-      queueUnlockModal(type);
-    }
+    if (type !== 'clean' && day === actionUnlock[type]) queueUnlockModal(type);
   });
 
-  if (quality <= 0) {
-    setTimeout(showGameOverScreen, 400);
-    return;
-  }
-  if (quality >= QUALITY_TARGET) {
-    setTimeout(showVictoryScreen, 500);
-  }
-});
+  if (quality <= 0) { setTimeout(showGameOverScreen, 400); return; }
+  if (quality >= QUALITY_TARGET) setTimeout(showVictoryScreen, 500);
+}
+
+// ==================== EVENT LISTENERS ====================
+document.getElementById('btn-end-turn').addEventListener('click', startDayTransition);
 
 document.querySelectorAll('.action-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const type = btn.dataset.type;
     const value = parseInt(btn.dataset.points);
-    const cooldownInfo = actionCooldowns[type];
 
     if (!isActionUnlocked(type)) {
       showMessage(`🔒 Ação desbloqueada no dia ${actionUnlock[type]}!`, "#ff9900");
       return;
     }
 
+    // Proteção de Nascentes: ação única e permanente
+    if (type === 'psa') {
+      if (psaActive) return;
+      psaActive = true;
+      appliedActions.add('psa');
+      quality = Math.min(QUALITY_TARGET, quality + value);
+      points += value * 2;
+      addVisualEffect('psa_action', 200, 150, 1600);
+      showMessage('💧 Nascentes protegidas! A partir de agora o rio degrada bem mais devagar.', '#34d1c6');
+      playSound('good');
+      updateUI();
+      updateActionButtons();
+      return;
+    }
+
+    const cooldownInfo = actionCooldowns[type];
     const daysUntilAvailable = cooldownInfo.lastUsed + cooldownInfo.cooldown - day;
 
     if (daysUntilAvailable > 0) {
@@ -815,9 +1095,11 @@ document.querySelectorAll('.action-btn').forEach(btn => {
     else if (type === 'clean') addPendingAction('clean', value, 1);
     else if (type === 'recycle') addPendingAction('recycle', value, 2);
     else if (type === 'factory') addPendingAction('factory', value, 2);
+    else if (type === 'sanitation') addPendingAction('sanitation', value, 4);
 
     cooldownInfo.lastUsed = day;
     points += Math.abs(value) * 2;
+    playSound('action');
     updateUI();
     updateActionButtons();
   });
@@ -833,16 +1115,19 @@ document.getElementById('btn-close-settings').addEventListener('click', closeSet
 document.getElementById('btn-sound').addEventListener('click', () => {
   soundEnabled = !soundEnabled;
   document.getElementById('btn-sound').textContent = soundEnabled ? "🔊 Ligado" : "🔇 Desligado";
+  if (soundEnabled) playSound('action');
 });
 
 document.getElementById('btn-libras').addEventListener('click', () => {
   librasEnabled = !librasEnabled;
   document.getElementById('btn-libras').textContent = librasEnabled ? "✅ Ativado" : "❌ Desativado";
+  updateLibrasWidget();
 });
 
 document.getElementById('btn-play').addEventListener('click', () => {
   document.getElementById('screen-start').classList.remove('active');
   document.getElementById('screen-game').classList.add('active');
+  checkActChange();
 
   if (!hasSeenIntro) {
     hasSeenIntro = true;
@@ -855,6 +1140,16 @@ document.getElementById('btn-howto').addEventListener('click', () => {
   document.getElementById('screen-howto').classList.add('active');
 });
 
+document.getElementById('btn-start-from-howto').addEventListener('click', () => {
+  document.getElementById('screen-howto').classList.remove('active');
+  document.getElementById('screen-game').classList.add('active');
+  checkActChange();
+  if (!hasSeenIntro) {
+    hasSeenIntro = true;
+    queueUnlockModal('clean');
+  }
+});
+
 document.getElementById('btn-back').addEventListener('click', () => {
   document.getElementById('screen-howto').classList.remove('active');
   document.getElementById('screen-start').classList.add('active');
@@ -862,10 +1157,11 @@ document.getElementById('btn-back').addEventListener('click', () => {
 
 document.getElementById('btn-back-menu').addEventListener('click', () => {
   if (confirm("Voltar ao menu? Progresso será perdido.")) {
-    quality = 25; points = 0; day = 1; pendingActions = []; plantedTrees = [];
+    resetGameState();
     document.getElementById('screen-game').classList.remove('active');
+    document.getElementById('screen-victory').classList.remove('active');
+    document.getElementById('screen-gameover').classList.remove('active');
     document.getElementById('screen-start').classList.add('active');
-    updateUI();
   }
 });
 
@@ -876,6 +1172,7 @@ window.addEventListener('load', () => {
   drawRiverScene();
   updateUI();
   updateActionButtons();
+  updateLibrasWidget();
 
   const cleanBtn = document.querySelector('.action-btn[data-type="clean"]');
   if (cleanBtn) {
@@ -889,9 +1186,19 @@ window.addEventListener('load', () => {
 function updateActionButtons() {
   document.querySelectorAll('.action-btn').forEach(btn => {
     const type = btn.dataset.type;
+    const small = btn.querySelector('small');
+
+    if (type === 'psa' && psaActive) {
+      btn.disabled = true;
+      btn.classList.add('psa-done');
+      btn.style.opacity = '1';
+      btn.style.filter = 'none';
+      if (small) small.textContent = 'Nascentes protegidas';
+      return;
+    }
+
     const cooldownInfo = actionCooldowns[type];
     const daysUntilAvailable = cooldownInfo.lastUsed + cooldownInfo.cooldown - day;
-    const small = btn.querySelector('small');
 
     if (!isActionUnlocked(type)) {
       btn.disabled = true;
@@ -900,7 +1207,7 @@ function updateActionButtons() {
       btn.style.filter = 'grayscale(0.6)';
       if (small) small.textContent = `Desbloqueada no dia ${actionUnlock[type]}`;
 
-    } else if (daysUntilAvailable > 0) {
+    } else if (type !== 'psa' && daysUntilAvailable > 0) {
       btn.disabled = true;
       btn.style.opacity = '0.6';
       btn.style.cursor = 'not-allowed';
@@ -913,16 +1220,21 @@ function updateActionButtons() {
       btn.style.cursor = 'pointer';
       btn.style.filter = 'none';
 
-      const points = btn.dataset.points;
+      const pointsVal = btn.dataset.points;
       if (small) {
-        let daysText = '';
-        switch (type) {
-          case 'clean':   daysText = '1 dia'; break;
-          case 'tree':    daysText = '3 dias'; break;
-          case 'recycle': daysText = '2 dias'; break;
-          case 'factory': daysText = '2 dias'; break;
+        if (type === 'psa') {
+          small.textContent = 'Ação única';
+        } else {
+          let daysText = '';
+          switch (type) {
+            case 'clean':      daysText = '1 dia'; break;
+            case 'tree':       daysText = '3 dias'; break;
+            case 'recycle':    daysText = '2 dias'; break;
+            case 'factory':    daysText = '2 dias'; break;
+            case 'sanitation': daysText = '4 dias'; break;
+          }
+          small.textContent = `+${pointsVal} (${daysText})`;
         }
-        small.textContent = `+${points} (${daysText})`;
       }
     }
   });
