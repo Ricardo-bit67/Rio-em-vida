@@ -32,25 +32,25 @@ function loadRiverSheet(name, src) {
   img.onload = () => { riverSprites[name].loaded = true; };
   img.src = src;
 }
-loadRiverSheet('trash', 'assets/river/trash_sheet.png');
-loadRiverSheet('fish', 'assets/river/fish_sheet.png');
-loadRiverSheet('plants', 'assets/river/plants_sheet.png');
-loadRiverSheet('effects', 'assets/river/effects_sheet.png');
+loadRiverSheet('trash', 'trash_sheet.png');
+loadRiverSheet('fish', 'fish_sheet.png');
+loadRiverSheet('plants', 'plants_sheet.png');
+loadRiverSheet('effects', 'effects_sheet.png');
 // Árvores reais (usadas tanto no fundo quanto nas árvores plantadas pelo jogador) — recortadas
 // em ícones individuais de assets/river/bg_trees_sparse.png (ver FRAMES_TREES mais abaixo).
-loadRiverSheet('bgTreesIcons', 'assets/river/bg_trees_sparse.png');
-// Camadas de fundo reais (fornecidas pelo usuário), tileadas horizontalmente com paralaxe:
-loadRiverSheet('bgClouds', 'assets/river/clouds_sheet.png');
-loadRiverSheet('bgForest', 'assets/river/bg_forest_silhouette.png');
-loadRiverSheet('bgTreesDense', 'assets/river/bg_trees_dense.png');
-loadRiverSheet('bgTreesMedium', 'assets/river/bg_trees_medium.png');
-loadRiverSheet('bgTreesSparse', 'assets/river/bg_trees_sparse.png');
-loadRiverSheet('bgGround', 'assets/river/bg_ground.png');
-loadRiverSheet('bgRocks', 'assets/river/bg_rocks_bushes.png');
-loadRiverSheet('bgWater', 'assets/river/bg_water.png');
-loadRiverSheet('bgWateranimation', 'assets/river/water_anim_sheet.png');
+loadRiverSheet('bgTreesIcons', 'bg_trees_sparse.png');
+// Camadas de fundo reais, tileadas horizontalmente com paralaxe:
+loadRiverSheet('bgClouds', 'clouds_sheet.png');
+loadRiverSheet('bgForest', 'bg_forest_silhouette.png');
+loadRiverSheet('bgTreesDense', 'bg_trees_dense.png');
+loadRiverSheet('bgTreesMedium', 'bg_trees_medium.png');
+loadRiverSheet('bgTreesSparse', 'bg_trees_sparse.png');
+loadRiverSheet('bgGround', 'bg_ground.png');
+loadRiverSheet('bgRocks', 'bg_rocks_bushes.png');
+loadRiverSheet('bgWater', 'bg_water.png');
+loadRiverSheet('bgWateranimation', 'water_anim_sheet.png');
 // Fábrica real — anexada na margem direita do rio.
-loadRiverSheet('bgFactory', 'assets/river/bg_factory.png');
+loadRiverSheet('bgFactory', 'bg_factory.png');
 
 const FRAMES_TRASH = [{"x": 0, "y": 15, "w": 83, "h": 21}, {"x": 106, "y": 7, "w": 36, "h": 29}, {"x": 188, "y": 5, "w": 38, "h": 31}, {"x": 280, "y": 2, "w": 21, "h": 34}, {"x": 353, "y": 5, "w": 40, "h": 31}, {"x": 30, "y": 42, "w": 22, "h": 30}, {"x": 105, "y": 41, "w": 38, "h": 31}, {"x": 194, "y": 39, "w": 27, "h": 33}, {"x": 276, "y": 44, "w": 28, "h": 28}, {"x": 353, "y": 49, "w": 41, "h": 23}, {"x": 21, "y": 87, "w": 40, "h": 21}, {"x": 110, "y": 77, "w": 28, "h": 31}, {"x": 189, "y": 74, "w": 36, "h": 34}, {"x": 270, "y": 72, "w": 40, "h": 36}, {"x": 354, "y": 79, "w": 39, "h": 29}, {"x": 25, "y": 114, "w": 32, "h": 30}, {"x": 104, "y": 117, "w": 41, "h": 27}, {"x": 187, "y": 115, "w": 40, "h": 29}, {"x": 271, "y": 116, "w": 39, "h": 28}, {"x": 352, "y": 115, "w": 43, "h": 29}];
 const FRAMES_FISH = [{"x": 6, "y": 4, "w": 48, "h": 27}, {"x": 64, "y": 3, "w": 52, "h": 28}, {"x": 124, "y": 2, "w": 51, "h": 29}, {"x": 183, "y": 2, "w": 53, "h": 29}, {"x": 240, "y": 1, "w": 60, "h": 30}, {"x": 7, "y": 36, "w": 45, "h": 26}, {"x": 62, "y": 33, "w": 55, "h": 29}, {"x": 124, "y": 33, "w": 52, "h": 29}, {"x": 185, "y": 32, "w": 49, "h": 30}, {"x": 247, "y": 31, "w": 46, "h": 31}, {"x": 8, "y": 65, "w": 44, "h": 28}, {"x": 69, "y": 66, "w": 41, "h": 27}, {"x": 127, "y": 66, "w": 45, "h": 27}];
