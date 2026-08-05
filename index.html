@@ -19,16 +19,22 @@
       <p class="subtitle">PEQUENAS AÇÕES, GRANDES MUDANÇAS!</p>
 
       <div class="character">
-        <img id="leo-start" src="Guardiao.png" alt="Guardião">
+        <img id="leo-start" src="assets2/Guardiao.png" alt="Guardião">
       </div>
 
       <div class="menu-buttons">
-        <button id="btn-play" class="pixel-btn img-btn">
-          <img src="Jogar.png" alt="Jogar">
-        </button>
-        <button id="btn-howto" class="pixel-btn img-btn">
-          <img src="Como Jogar.png" alt="Como Jogar">
-        </button>
+        <button id="btn-play" class="pixel-btn primary-btn">▶ JOGAR</button>
+        <button id="btn-howto" class="pixel-btn secondary-btn">❓ COMO JOGAR</button>
+      </div>
+
+      <div class="start-dialogue guardian-dialogue">
+        <div class="guardian-portrait-frame">
+          <img src="assets2/Guardiao.png" alt="Guardião">
+        </div>
+        <div class="dialogue-box">
+          <span class="dialogue-name">Guardião do Rio</span>
+          <p class="dialogue-text">Oi! Eu sou o Léo, o Guardião do Rio. Vamos cuidar do nosso rio juntos?</p>
+        </div>
       </div>
 
       <div class="credits">Desenvolvido por:<br>
@@ -39,77 +45,118 @@
 
     <!-- TELA COMO JOGAR (TUTORIAL COMPLETO) -->
     <div id="screen-howto" class="screen">
-      <h2>📖 Como Jogar</h2>
+      <div class="howto-intro guardian-dialogue">
+        <div class="guardian-portrait-frame">
+          <img src="assets2/Guardiao.png" alt="Guardião">
+        </div>
+        <div class="dialogue-box">
+          <span class="dialogue-name">Guardião do Rio</span>
+          <p class="dialogue-text">Eu sou o Léo, o Guardião do Rio! Minhas escolhas afetam a natureza. Vamos aprender como funciona?</p>
+        </div>
+      </div>
 
       <div class="howto-content">
 
         <section class="howto-section">
-          <h3>🎯 Seu objetivo</h3>
+          <h3><span class="section-pill">🎯 Seu objetivo</span></h3>
           <p>Você é o <strong>Guardião do Rio</strong>. O rio da sua cidade está poluído e precisa da
-          sua ajuda. A cada dia, escolha ações para melhorar a <strong>qualidade do rio</strong> até
-          chegar a <strong>100%</strong>. Mas cuidado: o tempo passa e, se você não agir, a poluição
-          volta a crescer sozinha — e se a qualidade chegar a <strong>0%</strong>, o rio morre.</p>
+          sua ajuda. Ao longo de vários dias, escolha ações para elevar a <strong>qualidade do rio</strong>
+          até <strong>100%</strong>. O tempo corre: se você não agir, a poluição volta a crescer sozinha —
+          e se a qualidade cair a <strong>0%</strong>, o rio morre.</p>
         </section>
 
         <section class="howto-section">
-          <h3>🔁 Como funciona um dia</h3>
+          <h3><span class="section-pill">🔁 Como funciona um dia</span></h3>
           <ol class="howto-steps">
             <li>Escolha uma ou mais ações disponíveis no painel.</li>
-            <li>Cada ação tem um <strong>efeito</strong> (quanto melhora o rio) e um <strong>prazo</strong>
-              (quantos dias leva pra fazer efeito de verdade).</li>
+            <li>Cada ação tem um <strong>efeito</strong>, um <strong>prazo</strong> pra fazer efeito de
+              verdade, e um <strong>tempo de recarga</strong> até poder ser usada de novo.</li>
             <li>Clique em <strong>FINALIZAR DIA</strong> para avançar o tempo.</li>
             <li>No fim do dia, eventos aleatórios podem acontecer — bons ou ruins.</li>
-            <li>Novas ações são desbloqueadas conforme os dias passam.</li>
+            <li>Novas ações são desbloqueadas conforme a história avança.</li>
           </ol>
         </section>
 
         <section class="howto-section">
-          <h3>🛠️ As ações</h3>
+          <h3><span class="section-pill">📚 A história tem 3 atos</span></h3>
+          <p><strong>Ato 1 — Mobilização (dias 1 a 9):</strong> ações rápidas e comunitárias, pra estancar o problema.<br>
+          <strong>Ato 2 — Intervenção Estrutural (dias 10 a 16):</strong> ações mais caras e demoradas, que atacam a
+          causa da poluição de verdade.<br>
+          <strong>Ato 3 — Consolidação Ecológica (dia 17 em diante):</strong> hora de proteger o que foi conquistado
+          e ver o rio renascer.</p>
+        </section>
+
+        <section class="howto-section">
+          <h3><span class="section-pill">🛠️ As ações</span></h3>
           <div class="howto-actions-grid">
             <div class="howto-action-card action-clean">
               <span class="howto-icon">🗑️</span>
               <strong>Limpar Rio</strong>
-              <small>Disponível desde o Dia 1 · efeito em 1 dia</small>
-              <p>Remove o lixo visível da água. É rápida e sempre disponível — sua base de ação diária.</p>
+              <small>Dia 1 · efeito em 1 dia</small>
+              <p>Remove o lixo visível da água. Rápida e sempre disponível — sua base de ação diária.</p>
             </div>
             <div class="howto-action-card action-tree">
               <span class="howto-icon">🌳</span>
               <strong>Plantar Árvores</strong>
-              <small>Desbloqueia no Dia 3 · efeito em 3 dias</small>
-              <p>Árvores nas margens seguram o solo e protegem o rio da erosão. Leva mais tempo, mas o efeito é duradouro.</p>
+              <small>Dia 3 · efeito em 3 dias</small>
+              <p>A mata ciliar segura o solo das margens e filtra o que chega à água. Efeito duradouro.</p>
             </div>
             <div class="howto-action-card action-recycle">
               <span class="howto-icon">♻️</span>
               <strong>Campanha de Reciclagem</strong>
-              <small>Desbloqueia no Dia 5 · efeito em 2 dias</small>
-              <p>Educa e engaja a comunidade a gerar menos lixo. O efeito cresce quando a população participa.</p>
+              <small>Dia 5 · efeito em 2 dias</small>
+              <p>Educa a comunidade a gerar menos lixo. Fica mais forte quando a população se engaja.</p>
             </div>
             <div class="howto-action-card action-factory">
               <span class="howto-icon">🏭</span>
               <strong>Fiscalizar Fábrica</strong>
-              <small>Desbloqueia no Dia 7 · efeito em 2 dias</small>
-              <p>Fiscaliza a indústria local, reduzindo o dano de vazamentos químicos que possam acontecer.</p>
+              <small>Dia 7 · efeito em 2 dias</small>
+              <p>Reduz o estrago de futuros vazamentos químicos industriais.</p>
+            </div>
+            <div class="howto-action-card action-sanitation">
+              <span class="howto-icon">🚰</span>
+              <strong>Rede de Esgoto</strong>
+              <small>Dia 10 · efeito em 4 dias</small>
+              <p>Conecta esgoto a uma estação de tratamento. Cara e demorada, mas é a intervenção mais estrutural do jogo.</p>
+            </div>
+            <div class="howto-action-card action-psa">
+              <span class="howto-icon">💧</span>
+              <strong>Proteção de Nascentes</strong>
+              <small>Dia 13 · ação única</small>
+              <p>Paga proprietários rurais para conservar as nascentes. A partir daí, o rio perde qualidade bem mais devagar.</p>
             </div>
           </div>
         </section>
 
         <section class="howto-section">
-          <h3>🎲 Eventos aleatórios</h3>
+          <h3><span class="section-pill">🎲 Eventos aleatórios</span></h3>
           <p>Ao fim de cada dia, existe uma chance de algo acontecer — chuvas, retorno de peixes,
-          crescimento natural, mas também vazamentos e contaminações. Ter uma <strong>Fábrica fiscalizada</strong>
+          crescimento natural, mas também vazamentos e contaminações. Uma <strong>Fábrica fiscalizada</strong>
           reduz o estrago de eventos industriais, e ações como <strong>Árvores</strong> e <strong>Reciclagem</strong>
-          ganham bônus quando combinadas com certos eventos positivos.</p>
+          ganham bônus quando combinadas com eventos positivos.</p>
         </section>
 
         <section class="howto-section">
-          <h3>🏆 Vitória e derrota</h3>
+          <h3><span class="section-pill">🏆 Vitória e derrota</span></h3>
           <p><strong>Vitória:</strong> a qualidade do rio chega a 100%.<br>
           <strong>Derrota:</strong> a qualidade do rio cai a 0%.</p>
         </section>
 
       </div>
 
-      <button id="btn-back" class="pixel-btn">VOLTAR</button>
+      <div class="howto-outro guardian-dialogue">
+        <div class="guardian-portrait-frame">
+          <img src="assets2/Guardiao.png" alt="Guardião">
+        </div>
+        <div class="dialogue-box">
+          <p class="dialogue-text">Lembre-se: o futuro do rio está nas suas mãos! ❤️</p>
+        </div>
+      </div>
+
+      <div class="howto-buttons">
+        <button id="btn-back" class="pixel-btn secondary-btn">VOLTAR</button>
+        <button id="btn-start-from-howto" class="pixel-btn primary-btn">VAMOS COMEÇAR!</button>
+      </div>
     </div>
 
     <!-- TELA DO JOGO -->
@@ -117,31 +164,35 @@
       <button id="btn-settings-game" class="settings-btn">⚙️</button>
       <div id="day-night-badge" class="day-night-badge">☀️</div>
 
-      <header>
-        <div class="status">
-          <div class="quality">
-            <span>QUALIDADE DO RIO</span>
-            <div class="bar-container">
-              <div id="quality-bar" class="bar"></div>
-              <div class="bar-segments"></div>
-            </div>
-            <span id="quality-text">12%</span>
+      <header class="status-bar">
+        <div class="quality">
+          <span class="status-label">💧 QUALIDADE DO RIO</span>
+          <div class="bar-container">
+            <div id="quality-bar" class="bar"></div>
+            <div class="bar-segments"></div>
           </div>
-          <div class="points">
-            <span id="points">0</span> ⭐
-          </div>
+          <span id="quality-text">12%</span>
         </div>
-        <div class="day">Dia <span id="day">1</span></div>
+        <div class="points-chip">
+          <span id="points">0</span> ⭐
+        </div>
       </header>
 
       <div class="river-scene">
         <canvas id="river-canvas" width="720" height="260"></canvas>
+
+        <div id="day-transition-overlay" class="day-transition-overlay">
+          <div class="day-transition-content">
+            <span id="day-transition-icon">🌅</span>
+            <p>Avançando o dia...</p>
+          </div>
+        </div>
       </div>
 
-      <!-- CAIXA DE DIÁLOGO DO GUARDIÃO (fixa, não sobrepõe mais o canvas) -->
+      <!-- CAIXA DE DIÁLOGO DO GUARDIÃO -->
       <div class="guardian-dialogue" id="guardian-dialogue">
         <div class="guardian-portrait-frame">
-          <img id="leo-game" src="Guardiao.png" alt="Guardião">
+          <img id="leo-game" src="assets2/Guardiao.png" alt="Guardião">
         </div>
         <div class="dialogue-box" id="dialogue-box">
           <span class="dialogue-name">Guardião do Rio</span>
@@ -150,31 +201,46 @@
       </div>
 
       <div class="actions">
-        <button class="action-btn action-tree" data-points="3" data-type="tree">
+        <button class="action-btn action-tree" data-points="18" data-type="tree">
           <span class="btn-icon">🌳</span>
           <span class="btn-text">Plantar Árvores</span>
-          <small>+3 (3 dias)</small>
+          <small>+18 (3 dias)</small>
         </button>
         <button class="action-btn action-clean" data-type="clean" data-points="25">
           <span class="btn-icon">🗑️</span>
           <span class="btn-text">Limpar Rio</span>
           <small>+25 (1 dia)</small>
         </button>
-        <button class="action-btn action-recycle" data-points="4" data-type="recycle">
+        <button class="action-btn action-recycle" data-points="14" data-type="recycle">
           <span class="btn-icon">♻️</span>
           <span class="btn-text">Campanha de Reciclagem</span>
-          <small>+4 (2 dias)</small>
+          <small>+14 (2 dias)</small>
         </button>
-        <button class="action-btn action-factory" data-points="6" data-type="factory">
+        <button class="action-btn action-factory" data-points="16" data-type="factory">
           <span class="btn-icon">🏭</span>
           <span class="btn-text">Fiscalizar Fábrica</span>
-          <small>+6 (2 dias)</small>
+          <small>+16 (2 dias)</small>
+        </button>
+        <button class="action-btn action-sanitation" data-points="35" data-type="sanitation">
+          <span class="btn-icon">🚰</span>
+          <span class="btn-text">Rede de Esgoto</span>
+          <small>+35 (4 dias)</small>
+        </button>
+        <button class="action-btn action-psa" data-points="12" data-type="psa">
+          <span class="btn-icon">💧</span>
+          <span class="btn-text">Proteção de Nascentes</span>
+          <small>Ação única</small>
         </button>
       </div>
 
+      <div class="bottom-bar">
+        <div class="bottom-chip">📅 Dia <span id="day">1</span></div>
+        <div class="bottom-chip objective-chip">🎯 <span id="act-label">Ato 1: Mobilização</span></div>
+        <button id="btn-back-menu" class="pause-btn" title="Menu">⏸</button>
+      </div>
+
       <div class="game-buttons">
-        <button id="btn-end-turn" class="pixel-btn end-turn">FINALIZAR DIA</button>
-        <button id="btn-back-menu" class="pixel-btn back-menu">← MENU</button>
+        <button id="btn-end-turn" class="pixel-btn primary-btn end-turn">FINALIZAR DIA</button>
       </div>
     </div>
 
@@ -190,10 +256,10 @@
       </div>
 
       <div class="character victory-leo">
-        <img src="/Guardiao.png" alt="Léo">
+        <img src="assets2/Guardiao.png" alt="Léo">
       </div>
 
-      <button id="btn-restart" class="pixel-btn">JOGAR NOVAMENTE</button>
+      <button id="btn-restart" class="pixel-btn primary-btn">JOGAR NOVAMENTE</button>
 
       <div class="credits">Desenvolvido por:<br>
         Ricardo Oliveira Nascimento<br>
@@ -212,7 +278,7 @@
       </div>
 
       <div class="character gameover-leo">
-        <img src="Guardiao.png" alt="Guardião abatido">
+        <img src="assets2/Guardiao.png" alt="Guardião abatido">
       </div>
 
       <button id="btn-retry" class="pixel-btn danger-btn">TENTAR NOVAMENTE</button>
@@ -233,7 +299,7 @@
           <button id="btn-libras" class="toggle-btn">✅ Ativado</button>
         </div>
 
-        <button id="btn-close-settings" class="pixel-btn">FECHAR</button>
+        <button id="btn-close-settings" class="pixel-btn secondary-btn">FECHAR</button>
       </div>
     </div>
 
@@ -243,7 +309,7 @@
         <span class="unlock-icon" id="unlock-icon">🌳</span>
         <h2 id="unlock-title">Nova ação desbloqueada!</h2>
         <p id="unlock-description" class="unlock-description"></p>
-        <button id="btn-unlock-ok" class="pixel-btn" disabled>Aguarde... (5)</button>
+        <button id="btn-unlock-ok" class="pixel-btn primary-btn" disabled>Aguarde... (5)</button>
       </div>
     </div>
   </div>
